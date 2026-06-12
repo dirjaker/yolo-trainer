@@ -11,6 +11,11 @@ const routes = [
   { path: '/models/:id', name: 'ModelDetail', component: () => import('../views/Model/ModelDetail.vue') },
   { path: '/datasets', name: 'DatasetList', component: () => import('../views/Dataset/DatasetList.vue') },
   { path: '/test', name: 'Test', component: () => import('../views/Test/TestView.vue') },
+  { path: '/compare', name: 'Compare', component: () => import('../views/Compare/CompareView.vue') },
+  { path: '/deploy', name: 'Deploy', component: () => import('../views/Deploy/DeployView.vue') },
+  { path: '/hyperparameter', name: 'Hyperparameter', component: () => import('../views/Hyperparameter/SearchView.vue') },
+  { path: '/team', name: 'Team', component: () => import('../views/Team/TeamView.vue') },
+  { path: '/activity', name: 'Activity', component: () => import('../views/Activity/ActivityView.vue') },
 ]
 
 const router = createRouter({

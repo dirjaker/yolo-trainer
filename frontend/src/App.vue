@@ -42,6 +42,11 @@ const titleMap = {
   '/models': '模型管理',
   '/datasets': '数据集管理',
   '/test': '测试中心',
+  '/compare': '模型对比',
+  '/deploy': '模型部署',
+  '/hyperparameter': '超参搜索',
+  '/team': '团队管理',
+  '/activity': '活动日志',
 }
 const currentTitle = computed(() => titleMap[route.path] || 'YOLO Trainer')
 
@@ -51,6 +56,11 @@ const menuOptions = [
   { label: '模型管理', key: '/models' },
   { label: '数据集管理', key: '/datasets' },
   { label: '测试中心', key: '/test' },
+  { label: '模型对比', key: '/compare' },
+  { label: '模型部署', key: '/deploy' },
+  { label: '超参搜索', key: '/hyperparameter' },
+  { label: '团队管理', key: '/team' },
+  { label: '活动日志', key: '/activity' },
 ]
 
 const activeMenu = computed(() => {
@@ -58,6 +68,11 @@ const activeMenu = computed(() => {
   if (p.startsWith('/training')) return '/training'
   if (p.startsWith('/models')) return '/models'
   if (p.startsWith('/datasets')) return '/datasets'
+  if (p.startsWith('/compare')) return '/compare'
+  if (p.startsWith('/deploy')) return '/deploy'
+  if (p.startsWith('/hyperparameter')) return '/hyperparameter'
+  if (p.startsWith('/team')) return '/team'
+  if (p.startsWith('/activity')) return '/activity'
   return p
 })
 

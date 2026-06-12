@@ -7,6 +7,11 @@ from app.api.v1.training import router as training_router
 from app.api.v1.model import router as model_router
 from app.api.v1.dataset import router as dataset_router
 from app.api.v1.test import router as test_router
+from app.api.v1.team import router as team_router
+from app.api.v1.activity import router as activity_router
+from app.api.v1.compare import router as compare_router
+from app.api.v1.deploy import router as deploy_router
+from app.api.v1.hyperparameter import router as hyperparameter_router
 
 api_router = APIRouter()
 
@@ -15,3 +20,8 @@ api_router.include_router(training_router, prefix="/training", tags=["训练"])
 api_router.include_router(model_router, prefix="/models", tags=["模型"])
 api_router.include_router(dataset_router, prefix="/datasets", tags=["数据集"])
 api_router.include_router(test_router, prefix="/test", tags=["测试"])
+api_router.include_router(team_router, prefix="/teams", tags=["团队"])
+api_router.include_router(activity_router, prefix="/activities", tags=["活动日志"])
+api_router.include_router(compare_router, prefix="/compare", tags=["模型对比"])
+api_router.include_router(deploy_router, prefix="/deployments", tags=["模型部署"])
+api_router.include_router(hyperparameter_router, prefix="/hyperparameter", tags=["超参搜索"])

@@ -25,6 +25,7 @@ class User(Base):
     # Relationships
     trainings = relationship("Training", back_populates="user", lazy="selectin")
     datasets = relationship("Dataset", back_populates="user", lazy="selectin")
+    hyperparameter_searches = relationship("HyperparameterSearch", back_populates="user", lazy="selectin")
 
     def __repr__(self) -> str:
         return f"<User {self.username}>"

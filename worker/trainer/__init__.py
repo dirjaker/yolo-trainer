@@ -26,5 +26,14 @@ def get_trainer(model_version: str, callback: Optional[TrainCallback] = None) ->
     elif version.startswith("yolov5"):
         from worker.trainer.yolov5 import YOLOv5Trainer
         return YOLOv5Trainer(callback=callback)
+    elif version.startswith("yolov9"):
+        from worker.trainer.yolov9 import YOLOv9Trainer
+        return YOLOv9Trainer(callback=callback)
+    elif version.startswith("yolov10"):
+        from worker.trainer.yolov10 import YOLOv10Trainer
+        return YOLOv10Trainer(callback=callback)
     else:
-        raise ValueError(f"Unsupported model version: {model_version}. Supported: yolov5*, yolov8*")
+        raise ValueError(
+            f"Unsupported model version: {model_version}. "
+            f"Supported: yolov5*, yolov8*, yolov9*, yolov10*"
+        )
