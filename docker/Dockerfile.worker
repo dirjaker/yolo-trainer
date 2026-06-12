@@ -1,0 +1,26 @@
+FROM pytorch/pytorch:2.0.0-cuda11.7-cudnn8-runtime
+
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libglib2.0-0 \
+    libsm6 \
+    libxext6 \
+    libxrender-dev \
+    libgl1-mesa-glx \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Python dependencies
+COPY worker/requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy application code
+COPY worker/ .
+# Also copy backend shared code (config, celery app, models, etc.)
+COPY backend/app /app/backend_app
+
+ENV PYTHONPATH=/app:/app/backend_app
+
+CMD ["celery", "-A", "backend_app.core.celery:celery_app", "worker", \
+     "--loglevel=info", "--concurrency=1", "-Q", "training,export,evaluate"]

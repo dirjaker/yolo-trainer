@@ -1,0 +1,76 @@
+version: "3.9"
+
+# 开发环境 docker-compose —— 支持热重载
+# 使用方式: docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
+
+services:
+  # ── Frontend (Vite dev server) ───────────────────────────────────────
+  frontend:
+    build: ~
+    image: node:18-alpine
+    working_dir: /app
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0"
+    volumes:
+      - ../frontend:/app
+      - frontend_node_modules:/app/node_modules
+    ports:
+      - "5173:5173"
+    environment:
+      - NODE_ENV=development
+    depends_on:
+      - backend
+
+  # ── Backend (uvicorn reload) ─────────────────────────────────────────
+  backend:
+    build: ~
+    image: python:3.10-slim
+    working_dir: /app
+    command: sh -c "pip install -r requirements.txt && uvicorn main:app --host 0.0.0.0 --port 8000 --reload"
+    volumes:
+      - ../backend:/app
+      - backend_pip_cache:/root/.cache/pip
+    ports:
+      - "8000:8000"
+      - "5678:5678"   # debugpy
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/yolo_trainer
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - MINIO_ENDPOINT=minio:9000
+      - MINIO_ACCESS_KEY=minioadmin
+      - MINIO_SECRET_KEY=minioadmin
+      - SECRET_KEY=dev-secret
+      - DEBUG=true
+      - UPLOAD_DIR=/data/uploads
+    depends_on:
+      - postgres
+      - redis
+
+  # ── Worker (挂载源码) ────────────────────────────────────────────────
+  worker:
+    build: ~
+    image: pytorch/pytorch:2.0.0-cuda11.7-cudnn8-runtime
+    working_dir: /app
+    command: celery -A backend_app.core.celery:celery_app worker --loglevel=debug --concurrency=1 -Q training,export,evaluate
+    volumes:
+      - ../worker:/app
+      - ../backend/app:/app/backend_app
+      - upload_data:/data/uploads
+      - model_data:/data/models
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/yolo_trainer
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - MINIO_ENDPOINT=minio:9000
+      - MINIO_ACCESS_KEY=minioadmin
+      - MINIO_SECRET_KEY=minioadmin
+      - PYTHONPATH=/app:/app/backend_app
+    depends_on:
+      - redis
+      - postgres
+
+volumes:
+  frontend_node_modules:
+  backend_pip_cache:

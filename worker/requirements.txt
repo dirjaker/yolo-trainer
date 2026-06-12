@@ -1,0 +1,10 @@
+ultralytics
+torch
+torchvision
+onnx
+onnxruntime
+celery[redis]
+redis
+minio
+numpy
+opencv-python-headless
