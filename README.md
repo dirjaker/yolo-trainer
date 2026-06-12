@@ -19,7 +19,12 @@ YOLO Trainer 是一个专为目标检测模型训练设计的 Web 平台，支�
 - 🧪 **模型测试** - 在线测试模型效果，支持批量推理
 - 📊 **训练监控** - 实时查看训练进度和指标
 - 🗂️ **数据集管理** - 数据集上传、标注、版本管理
-- 👥 **团队协作** - 多用户支持，权限管理
+- 🔍 **模型对比** - 多模型指标对比，可视化分析
+- ⚡ **超参搜索** - 自动超参数优化（贝叶斯/随机/网格）
+- 🚢 **模型部署** - 一键部署到 ONNX Runtime/TensorRT/TorchServe
+- 👥 **团队协作** - 多用户支持，权限管理，活动日志
+- 🔒 **安全防护** - SQL 注入检测、XSS 防护、请求限流
+- 📈 **监控告警** - Prometheus 指标、健康检查、结构化日志
 
 ---
 
@@ -371,24 +376,24 @@ DEFAULT_MODEL_PATH=/models/pretrained
 - [x] 单图测试
 - [x] 基础 UI
 
-### Phase 2 - 功能完善 🚧 进行中
+### Phase 2 - 功能完善 ✅ 已完成
 - [x] YOLOv5 支持
-- [ ] YOLOv9/v10 支持
+- [x] YOLOv9/v10 支持
 - [x] 数据集管理
 - [x] 训练监控
 - [x] 批量测试
 
-### Phase 3 - 高级功能 📋 计划中
-- [ ] 模型对比
-- [ ] 自动超参搜索
-- [ ] 模型部署
-- [ ] 团队协作
+### Phase 3 - 高级功能 ✅ 已完成
+- [x] 模型对比
+- [x] 自动超参搜索
+- [x] 模型部署
+- [x] 团队协作
 
-### Phase 4 - 生产就绪 📋 计划中
-- [ ] 性能优化
-- [ ] 安全加固
-- [ ] 监控告警
-- [ ] 文档完善
+### Phase 4 - 生产就绪 ✅ 已完成
+- [x] 性能优化
+- [x] 安全加固
+- [x] 监控告警
+- [x] 文档完善
 
 ---
 
@@ -456,3 +461,54 @@ git push origin feature/amazing-feature
 ---
 
 *最后更新：2026 年 6 月*
+
+### 模型对比
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| POST | /api/compare/models | 创建模型对比任务 |
+| GET | /api/compare/models/{id} | 获取对比结果 |
+| GET | /api/compare/models | 获取对比列表 |
+
+### 模型部署
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| POST | /api/deployments | 创建部署任务 |
+| GET | /api/deployments | 获取部署列表 |
+| GET | /api/deployments/{id} | 获取部署详情 |
+| GET | /api/deployments/{id}/status | 获取部署状态 |
+| POST | /api/deployments/{id}/stop | 停止部署 |
+
+### 超参搜索
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| POST | /api/hyperparameter/search | 创建搜索任务 |
+| GET | /api/hyperparameter/search | 获取搜索列表 |
+| GET | /api/hyperparameter/search/{id} | 获取搜索结果 |
+| GET | /api/hyperparameter/search/{id}/trials | 获取所有试验 |
+| POST | /api/hyperparameter/search/{id}/cancel | 取消搜索 |
+
+### 团队管理
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| POST | /api/teams | 创建团队 |
+| GET | /api/teams | 获取团队列表 |
+| GET | /api/teams/{id} | 获取团队详情 |
+| POST | /api/teams/{id}/members | 添加成员 |
+| DELETE | /api/teams/{id}/members/{user_id} | 移除成员 |
+
+### 活动日志
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | /api/activities | 获取活动日志 |
+
+### 监控
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | /api/metrics | Prometheus 指标 |
+| GET | /api/health | 健康检查 |
