@@ -17,87 +17,76 @@
   <rect width="1200" height="400" fill="url(#bg)"/>
   <rect width="1200" height="400" fill="url(#glow1)"/>
   <rect width="1200" height="400" fill="url(#glow2)"/>
-  <circle cx="387" cy="284" r="1.7265542337843645" fill="white" opacity="0.4"/>
-  <circle cx="265" cy="224" r="2.6159248333944136" fill="white" opacity="0.3"/>
-  <circle cx="153" cy="341" r="2.3802915736858905" fill="white" opacity="0.7"/>
-  <circle cx="153" cy="365" r="2.086398739309793" fill="white" opacity="0.9"/>
-  <circle cx="336" cy="228" r="3.0646477978519497" fill="white" opacity="0.4"/>
-  <circle cx="156" cy="300" r="3.04364335840237" fill="white" opacity="0.8"/>
-  <circle cx="512" cy="82" r="3.471146551891873" fill="white" opacity="0.2"/>
-  <circle cx="359" cy="217" r="2.1689953628730465" fill="white" opacity="0.9"/>
-  <circle cx="604" cy="219" r="3.473424277054657" fill="white" opacity="0.6"/>
-  <circle cx="270" cy="306" r="2.173188631963292" fill="white" opacity="0.3"/>
-  <circle cx="525" cy="338" r="2.247984877513284" fill="white" opacity="0.7"/>
-  <circle cx="599" cy="224" r="2.966763208377021" fill="white" opacity="0.4"/>
-  <circle cx="92" cy="217" r="3.7525525648938274" fill="white" opacity="0.5"/>
-  <circle cx="175" cy="326" r="2.363330998452201" fill="white" opacity="0.8"/>
-  <circle cx="600" cy="73" r="2.7379457987867166" fill="white" opacity="0.6"/>
-  <circle cx="459" cy="164" r="2.165293795950432" fill="white" opacity="0.6"/>
-  <circle cx="468" cy="350" r="3.911965780780835" fill="white" opacity="0.3"/>
-  <circle cx="193" cy="102" r="2.9021071262174307" fill="white" opacity="0.7"/>
-  <circle cx="63" cy="99" r="2.90470854660028" fill="white" opacity="0.6"/>
-  <circle cx="465" cy="213" r="2.587803437122795" fill="white" opacity="0.4"/>
-  <circle cx="527" cy="56" r="3.7253706890141816" fill="white" opacity="0.5"/>
-  <circle cx="86" cy="320" r="2.43647277695199" fill="white" opacity="0.5"/>
-  <circle cx="229" cy="217" r="2.952304696562828" fill="white" opacity="0.8"/>
-  <circle cx="87" cy="98" r="1.0928042556274646" fill="white" opacity="0.4"/>
-  <circle cx="170" cy="289" r="3.82743134779009" fill="white" opacity="0.5"/>
-  <circle cx="563" cy="118" r="2.4553173962565156" fill="white" opacity="0.6"/>
-  <circle cx="361" cy="259" r="2.8954951142707843" fill="white" opacity="0.2"/>
-  <circle cx="112" cy="337" r="1.654237885976618" fill="white" opacity="0.4"/>
-  <circle cx="478" cy="205" r="3.5598033238742506" fill="white" opacity="0.7"/>
-  <circle cx="530" cy="109" r="3.682118401282363" fill="white" opacity="0.4"/>
-  <circle cx="127" cy="319" r="2.8057054339394583" fill="white" opacity="0.6"/>
-  <circle cx="313" cy="291" r="1.1584605209759233" fill="white" opacity="0.6"/>
-  <circle cx="392" cy="161" r="3.478007775256004" fill="white" opacity="0.2"/>
-  <circle cx="544" cy="33" r="3.4878839258704595" fill="white" opacity="0.4"/>
-  <circle cx="161" cy="335" r="2.374009658541045" fill="white" opacity="0.7"/>
-  <circle cx="545" cy="274" r="1.9113627608253285" fill="white" opacity="0.4"/>
-  <circle cx="512" cy="200" r="1.0037346991806841" fill="white" opacity="0.3"/>
-  <circle cx="346" cy="30" r="1.233211729850483" fill="white" opacity="0.8"/>
-  <circle cx="341" cy="241" r="1.7942222937586272" fill="white" opacity="0.3"/>
-  <circle cx="433" cy="50" r="3.0545083626409433" fill="white" opacity="0.5"/>
-  <circle cx="232" cy="91" r="3.1928974840682685" fill="white" opacity="0.9"/>
-  <circle cx="162" cy="321" r="3.006574530674598" fill="white" opacity="0.6"/>
-  <circle cx="548" cy="47" r="1.7104624805875592" fill="white" opacity="0.4"/>
-  <circle cx="244" cy="335" r="3.63156263979921" fill="white" opacity="0.2"/>
-  <circle cx="314" cy="239" r="3.832170590852991" fill="white" opacity="0.3"/>
-  <circle cx="602" cy="167" r="3.6507324334476428" fill="white" opacity="0.4"/>
-  <circle cx="232" cy="56" r="1.375206358917408" fill="white" opacity="0.4"/>
-  <circle cx="426" cy="153" r="2.83552965032664" fill="white" opacity="0.5"/>
-  <circle cx="78" cy="269" r="1.9380787329828033" fill="white" opacity="0.7"/>
-  <circle cx="237" cy="317" r="1.456162759954033" fill="white" opacity="0.2"/>
-  <circle cx="357" cy="251" r="1.0751868190960208" fill="white" opacity="0.7"/>
-  <circle cx="351" cy="274" r="2.7950202837777027" fill="white" opacity="0.4"/>
-  <circle cx="302" cy="196" r="3.781973430559474" fill="white" opacity="0.3"/>
-  <circle cx="202" cy="45" r="2.971894035552881" fill="white" opacity="0.8"/>
-  <circle cx="323" cy="139" r="3.38947677492738" fill="white" opacity="0.4"/>
-  <circle cx="519" cy="176" r="1.1037021616890366" fill="white" opacity="0.5"/>
-  <circle cx="72" cy="76" r="3.0354469836048428" fill="white" opacity="0.2"/>
-  <circle cx="127" cy="285" r="2.159868702581039" fill="white" opacity="0.9"/>
-  <circle cx="391" cy="210" r="3.5923910831855497" fill="white" opacity="0.3"/>
-  <circle cx="137" cy="209" r="1.7175327830236573" fill="white" opacity="0.3"/>
-  <line x1="133" y1="299" x2="230" y2="220" stroke="white" stroke-width="0.5" opacity="0.15"/>
-  <line x1="337" y1="138" x2="384" y2="150" stroke="white" stroke-width="0.5" opacity="0.15"/>
-  <line x1="77" y1="244" x2="130" y2="278" stroke="white" stroke-width="0.5" opacity="0.15"/>
-  <line x1="196" y1="44" x2="265" y2="40" stroke="white" stroke-width="0.5" opacity="0.15"/>
-  <line x1="382" y1="204" x2="431" y2="161" stroke="white" stroke-width="0.5" opacity="0.15"/>
-  <line x1="557" y1="358" x2="605" y2="434" stroke="white" stroke-width="0.5" opacity="0.15"/>
-  <line x1="427" y1="297" x2="510" y2="277" stroke="white" stroke-width="0.5" opacity="0.15"/>
-  <line x1="132" y1="247" x2="195" y2="272" stroke="white" stroke-width="0.5" opacity="0.15"/>
-  <line x1="420" y1="106" x2="499" y2="29" stroke="white" stroke-width="0.5" opacity="0.15"/>
-  <line x1="567" y1="339" x2="619" y2="393" stroke="white" stroke-width="0.5" opacity="0.15"/>
-  <line x1="519" y1="180" x2="562" y2="247" stroke="white" stroke-width="0.5" opacity="0.15"/>
-  <line x1="257" y1="271" x2="317" y2="314" stroke="white" stroke-width="0.5" opacity="0.15"/>
-  <line x1="467" y1="261" x2="514" y2="294" stroke="white" stroke-width="0.5" opacity="0.15"/>
-  <line x1="319" y1="316" x2="430" y2="282" stroke="white" stroke-width="0.5" opacity="0.15"/>
-  <line x1="546" y1="99" x2="626" y2="109" stroke="white" stroke-width="0.5" opacity="0.15"/>
+
+  <circle cx="545" cy="264" r="3.0" fill="white" opacity="0.6"/>
+  <circle cx="600" cy="324" r="2.9" fill="white" opacity="0.6"/>
+  <circle cx="485" cy="306" r="1.8" fill="white" opacity="0.5"/>
+  <circle cx="138" cy="172" r="2.5" fill="white" opacity="0.8"/>
+  <circle cx="465" cy="305" r="3.3" fill="white" opacity="0.5"/>
+  <circle cx="47" cy="159" r="1.8" fill="white" opacity="0.4"/>
+  <circle cx="158" cy="177" r="2.3" fill="white" opacity="0.5"/>
+  <circle cx="342" cy="127" r="3.3" fill="white" opacity="0.5"/>
+  <circle cx="493" cy="145" r="2.8" fill="white" opacity="0.4"/>
+  <circle cx="48" cy="66" r="2.9" fill="white" opacity="0.6"/>
+  <circle cx="332" cy="330" r="3.2" fill="white" opacity="0.8"/>
+  <circle cx="181" cy="290" r="3.2" fill="white" opacity="0.6"/>
+  <circle cx="144" cy="128" r="2.5" fill="white" opacity="0.4"/>
+  <circle cx="114" cy="175" r="3.2" fill="white" opacity="0.3"/>
+  <circle cx="528" cy="33" r="2.1" fill="white" opacity="0.6"/>
+  <circle cx="328" cy="276" r="1.6" fill="white" opacity="0.7"/>
+  <circle cx="603" cy="40" r="3.0" fill="white" opacity="0.4"/>
+  <circle cx="527" cy="191" r="2.4" fill="white" opacity="0.8"/>
+  <circle cx="100" cy="268" r="2.7" fill="white" opacity="0.6"/>
+  <circle cx="82" cy="109" r="3.0" fill="white" opacity="0.4"/>
+  <circle cx="356" cy="220" r="2.4" fill="white" opacity="0.5"/>
+  <circle cx="600" cy="77" r="2.0" fill="white" opacity="0.6"/>
+  <circle cx="374" cy="239" r="2.2" fill="white" opacity="0.7"/>
+  <circle cx="466" cy="144" r="2.1" fill="white" opacity="0.7"/>
+  <circle cx="536" cy="365" r="3.1" fill="white" opacity="0.4"/>
+  <circle cx="299" cy="54" r="2.6" fill="white" opacity="0.5"/>
+  <circle cx="75" cy="152" r="2.3" fill="white" opacity="0.3"/>
+  <circle cx="185" cy="363" r="1.7" fill="white" opacity="0.7"/>
+  <circle cx="72" cy="337" r="3.2" fill="white" opacity="0.6"/>
+  <circle cx="490" cy="165" r="1.7" fill="white" opacity="0.6"/>
+  <circle cx="185" cy="190" r="3.4" fill="white" opacity="0.6"/>
+  <circle cx="364" cy="206" r="1.9" fill="white" opacity="0.5"/>
+  <circle cx="249" cy="39" r="3.2" fill="white" opacity="0.5"/>
+  <circle cx="249" cy="338" r="2.2" fill="white" opacity="0.7"/>
+  <circle cx="398" cy="101" r="2.1" fill="white" opacity="0.5"/>
+  <circle cx="526" cy="242" r="3.0" fill="white" opacity="0.5"/>
+  <circle cx="159" cy="70" r="3.0" fill="white" opacity="0.8"/>
+  <circle cx="325" cy="167" r="3.2" fill="white" opacity="0.4"/>
+  <circle cx="235" cy="160" r="2.5" fill="white" opacity="0.8"/>
+  <circle cx="441" cy="116" r="2.7" fill="white" opacity="0.7"/>
+  <circle cx="118" cy="325" r="2.8" fill="white" opacity="0.5"/>
+  <circle cx="97" cy="91" r="2.8" fill="white" opacity="0.4"/>
+  <circle cx="202" cy="64" r="1.7" fill="white" opacity="0.4"/>
+  <circle cx="494" cy="155" r="3.0" fill="white" opacity="0.7"/>
+  <circle cx="88" cy="72" r="1.6" fill="white" opacity="0.8"/>
+  <circle cx="208" cy="40" r="3.5" fill="white" opacity="0.4"/>
+  <circle cx="250" cy="60" r="2.4" fill="white" opacity="0.5"/>
+  <circle cx="319" cy="87" r="3.1" fill="white" opacity="0.8"/>
+  <circle cx="110" cy="337" r="2.9" fill="white" opacity="0.3"/>
+  <circle cx="439" cy="42" r="2.0" fill="white" opacity="0.8"/>
+
+  <line x1="390" y1="270" x2="482" y2="234" stroke="white" stroke-width="0.5" opacity="0.12"/>
+  <line x1="549" y1="117" x2="625" y2="105" stroke="white" stroke-width="0.5" opacity="0.12"/>
+  <line x1="482" y1="216" x2="547" y2="185" stroke="white" stroke-width="0.5" opacity="0.12"/>
+  <line x1="506" y1="325" x2="567" y2="311" stroke="white" stroke-width="0.5" opacity="0.12"/>
+  <line x1="447" y1="210" x2="535" y2="254" stroke="white" stroke-width="0.5" opacity="0.12"/>
+  <line x1="152" y1="334" x2="237" y2="289" stroke="white" stroke-width="0.5" opacity="0.12"/>
+  <line x1="366" y1="330" x2="428" y2="295" stroke="white" stroke-width="0.5" opacity="0.12"/>
+  <line x1="259" y1="140" x2="355" y2="125" stroke="white" stroke-width="0.5" opacity="0.12"/>
+  <line x1="301" y1="195" x2="363" y2="136" stroke="white" stroke-width="0.5" opacity="0.12"/>
+  <line x1="116" y1="329" x2="187" y2="313" stroke="white" stroke-width="0.5" opacity="0.12"/>
+  <line x1="388" y1="329" x2="448" y2="305" stroke="white" stroke-width="0.5" opacity="0.12"/>
+  <line x1="323" y1="265" x2="395" y2="296" stroke="white" stroke-width="0.5" opacity="0.12"/>
 
   <line x1="650" y1="60" x2="650" y2="340" stroke="white" stroke-width="0.5" opacity="0.15"/>
-  <text x="680" y="155" font-family="'SF Pro Display','Helvetica Neue',Arial,sans-serif" font-size="88" font-weight="800" fill="white" letter-spacing="8">YOLO TRAINER</text>
-  <text x="680" y="200" font-family="'SF Pro Display','Helvetica Neue',Arial,sans-serif" font-size="18" font-weight="400" fill="white" opacity="0.85" letter-spacing="3">YOLO TRAINER</text>
-  <text x="680" y="230" font-family="'Noto Sans SC','PingFang SC','Microsoft YaHei',sans-serif" font-size="16" font-weight="300" fill="white" opacity="0.6" letter-spacing="2">模型训练 · 版本控制 · 数据标注 · 自动测试 · Vue3+FastAPI</text>
-  <text x="680" y="280" font-family="'SF Mono','Fira Code','Consolas',monospace" font-size="13" fill="white" opacity="0.45" letter-spacing="1.5">Vue3 · FastAPI · PyTorch</text>
-  <line x1="680" y1="310" x2="1140" y2="310" stroke="white" stroke-width="0.5" opacity="0.15"/>
-  <text x="680" y="340" font-family="'SF Mono','Fira Code','Consolas',monospace" font-size="11" fill="white" opacity="0.35" letter-spacing="1">YOLO · COMPUTER VISION · DEEP LEARNING · PYTORCH</text>
+  <text x="680" y="130" font-family="'SF Pro Display','Helvetica Neue',Arial,sans-serif" font-size="56" font-weight="800" fill="white" letter-spacing="4">YOLO TRAINER</text>
+  <text x="680" y="185" font-family="'Noto Sans SC','PingFang SC','Microsoft YaHei',sans-serif" font-size="20" font-weight="500" fill="white" opacity="0.9" letter-spacing="2">YOLO 模型训练平台</text>
+  <text x="680" y="225" font-family="'Noto Sans SC','PingFang SC','Microsoft YaHei',sans-serif" font-size="14" font-weight="300" fill="white" opacity="0.55" letter-spacing="1.5">模型训练 · 版本控制 · 数据标注 · 自动测试 · Vue3+FastAPI</text>
+  <text x="680" y="275" font-family="'SF Mono','Fira Code','Consolas',monospace" font-size="12" fill="white" opacity="0.4" letter-spacing="1.5">Vue3 · FastAPI · PyTorch</text>
+  <line x1="680" y1="310" x2="1140" y2="310" stroke="white" stroke-width="0.5" opacity="0.12"/>
+  <text x="680" y="340" font-family="'SF Mono','Fira Code','Consolas',monospace" font-size="10" fill="white" opacity="0.3" letter-spacing="1">YOLO · COMPUTER VISION · DEEP LEARNING · PYTORCH</text>
 </svg>
