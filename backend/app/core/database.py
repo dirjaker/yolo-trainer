@@ -56,10 +56,7 @@ engine = create_async_engine(
     max_overflow=20,
     pool_timeout=30,
     pool_recycle=1800,       # 每 30 分钟回收连接，避免被服务端断开
-    connect_args={
-        "command_timeout": 10,
-        "server_settings": {"application_name": "yolo_trainer"},
-    },
+    connect_args={"command_timeout": 10} if "postgresql" in settings.DATABASE_URL else {},
 )
 
 async_session = async_sessionmaker(
