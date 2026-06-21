@@ -1,5 +1,6 @@
 """YOLO Trainer — FastAPI 应用入口。"""
 
+import os
 import logging
 import time
 from contextlib import asynccontextmanager
@@ -47,9 +48,10 @@ app = FastAPI(
 # ── 安全中间件（按声明的逆序执行，SecurityMiddleware 先拦截） ─────────────
 app.add_middleware(SecurityMiddleware)
 
+CORS_ORIGINS = os.getenv("CORS_ORIGINS", "http://localhost,http://127.0.0.1").split(",")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # 生产环境请替换为具体域名
+    allow_origins=CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
