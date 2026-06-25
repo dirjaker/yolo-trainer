@@ -1,9 +1,12 @@
 """YOLOv8 trainer using the ultralytics library."""
 
+import logging
 import os
 import time
 from pathlib import Path
 from typing import Any, Dict, Optional
+
+logger = logging.getLogger(__name__)
 
 from ultralytics import YOLO
 
@@ -39,10 +42,24 @@ class YOLOv8Trainer(BaseTrainer):
     def __init__(self, callback: Optional[TrainCallback] = None):
         super().__init__(callback)
 
+    # 允许用户传入的额外训练参数（白名单）
+    _SAFE_EXTRA_KEYS = {
+        "mosaic", "mixup", "copy_paste", "erasing", "hsv_h", "hsv_s", "hsv_v",
+        "degrees", "translate", "scale", "shear", "perspective", "flipud", "fliplr",
+        "bgr", "auto_augment", "cos_lr", "close_mosaic", "label_smoothing",
+        "nbs", "overlap_mask", "mask_ratio", "dropout", "val", "save", "save_json",
+        "save_hybrid", "conf", "iou", "max_det", "half", "dnn", "plots",
+    }
+
     def _resolve_model(self, config: TrainConfig) -> str:
         """Resolve the model identifier to a weight file path."""
         if config.pretrained_weights and Path(config.pretrained_weights).exists():
-            return config.pretrained_weights
+            # 校验路径在允许的目录内（防止路径穿越）
+            real = Path(config.pretrained_weights).resolve()
+            allowed_roots = [Path("/data/models"), Path("/data/uploads"), Path("/tmp")]
+            if not any(str(real).startswith(str(r)) for r in allowed_roots):
+                raise ValueError(f"pretrained_weights 路径不在允许范围内: {real}")
+            return str(real)
         return self._MODEL_MAP.get(config.model_version.lower(), f"{config.model_version}.pt")
 
     # ------------------------------------------------------------------
@@ -85,8 +102,13 @@ class YOLOv8Trainer(BaseTrainer):
                 train_args["resume"] = resume_path
                 train_args.pop("data", None)  # data is stored in checkpoint
 
-            # Merge extra args
-            train_args.update(config.extra)
+            # Merge extra args（仅允许白名单内的参数）
+            if config.extra:
+                safe_extra = {k: v for k, v in config.extra.items() if k in self._SAFE_EXTRA_KEYS}
+                dropped = set(config.extra.keys()) - self._SAFE_EXTRA_KEYS
+                if dropped:
+                    logger.warning("过滤掉不安全的训练参数: %s", dropped)
+                train_args.update(safe_extra)
 
             # Custom callback to bridge ultralytics events to our TrainCallback
             if self.callback:

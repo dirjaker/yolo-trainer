@@ -39,8 +39,8 @@ app = FastAPI(
     title=settings.APP_NAME,
     version=settings.APP_VERSION,
     description="基于 YOLO 的目标检测模型训练平台 API",
-    docs_url="/docs",
-    redoc_url="/redoc",
+    docs_url="/docs" if settings.DEBUG else None,
+    redoc_url="/redoc" if settings.DEBUG else None,
     lifespan=lifespan,
 )
 
@@ -53,8 +53,8 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=CORS_ORIGINS,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "Accept"],
 )
 
 
@@ -81,9 +81,6 @@ from app.api.v1.metrics import router as metrics_router  # noqa: E402
 
 app.include_router(metrics_router, tags=["监控"])
 
-# ── 静态文件服务（可选） ─────────────────────────────────────────────────
-import os  # noqa: E402
-
-UPLOAD_DIR = os.environ.get("UPLOAD_DIR", "/data/uploads")
-if os.path.isdir(UPLOAD_DIR):
-    app.mount("/static", StaticFiles(directory=UPLOAD_DIR), name="static")
+# ── 静态文件服务已移除 ─────────────────────────────────────────────────
+# 上传文件通过认证 API 端点访问，不公开暴露
+# 如需前端静态资源，使用 nginx 反向代理

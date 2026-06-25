@@ -15,6 +15,7 @@ def create_deployment(
     model_id: str,
     name: str,
     config: dict,
+    user_id=None,
 ) -> Deployment:
     """创建部署任务
 
@@ -23,6 +24,7 @@ def create_deployment(
         model_id: 模型 ID
         name: 部署名称
         config: 部署配置
+        user_id: 用户 ID（必填）
 
     Returns:
         Deployment: 部署对象
@@ -31,6 +33,7 @@ def create_deployment(
 
     deployment = Deployment(
         id=uuid.uuid4(),
+        user_id=user_id,
         model_id=uuid.UUID(model_id) if isinstance(model_id, str) else model_id,
         name=name,
         status="pending",
@@ -47,54 +50,6 @@ def create_deployment(
     deploy_model_task.delay(str(deployment.id))
 
     return deployment
-
-
-def get_deployment(db: Session, deploy_id: str) -> Optional[Deployment]:
-    """获取部署详情
-
-    Args:
-        db: 数据库会话
-        deploy_id: 部署 ID
-
-    Returns:
-        Deployment or None
-    """
-    return db.query(Deployment).filter(Deployment.id == deploy_id).first()
-
-
-def list_deployments(
-    db: Session,
-    status: Optional[str] = None,
-    platform: Optional[str] = None,
-    page: int = 1,
-    page_size: int = 20,
-) -> tuple[List[Deployment], int]:
-    """列出部署
-
-    Args:
-        db: 数据库会话
-        status: 按状态筛选
-        platform: 按平台筛选
-        page: 页码
-        page_size: 每页数量
-
-    Returns:
-        (list, total): 部署列表和总数
-    """
-    query = db.query(Deployment)
-    if status:
-        query = query.filter(Deployment.status == status)
-    if platform:
-        query = query.filter(Deployment.platform == platform)
-
-    total = query.count()
-    items = (
-        query.order_by(Deployment.created_at.desc())
-        .offset((page - 1) * page_size)
-        .limit(page_size)
-        .all()
-    )
-    return items, total
 
 
 def stop_deployment(db: Session, deploy_id: str) -> Optional[Deployment]:

@@ -1,8 +1,9 @@
 """Training schemas."""
 
+import uuid
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Literal, Optional
 
 from pydantic import BaseModel, Field
 
@@ -29,23 +30,31 @@ class TrainingConfig(BaseModel):
     amp: bool = Field(default=True, description="Use Automatic Mixed Precision")
 
 
+ALLOWED_MODEL_VERSIONS = Literal[
+    "yolov8n", "yolov8s", "yolov8m", "yolov8l", "yolov8x",
+    "yolov5n", "yolov5s", "yolov5m", "yolov5l", "yolov5x",
+    "yolov9t", "yolov9s", "yolov9m", "yolov9c", "yolov9e",
+    "yolov10n", "yolov10s", "yolov10m", "yolov10b", "yolov10l", "yolov10x",
+]
+
+
 class TrainingCreate(BaseModel):
     """Schema for creating a training job."""
     name: str = Field(..., min_length=1, max_length=200, description="Training job name")
-    model_version: str = Field(
+    model_version: ALLOWED_MODEL_VERSIONS = Field(
         default="yolov8n",
-        description="YOLO model version (yolov8n, yolov8s, yolov8m, yolov8l, yolov8x)",
+        description="YOLO model version",
     )
-    dataset_id: int = Field(..., description="Dataset ID to use for training")
+    dataset_id: uuid.UUID = Field(..., description="Dataset ID to use for training")
     config: Optional[TrainingConfig] = Field(default=None, description="Training configuration")
 
 
 class TrainingResponse(BaseModel):
     """Schema for training job response."""
-    id: int
+    id: uuid.UUID
     name: str
     model_version: str
-    dataset_id: int
+    dataset_id: uuid.UUID
     status: TrainingStatus = TrainingStatus.PENDING
     config: Optional[Dict[str, Any]] = None
     metrics: Optional[Dict[str, Any]] = None

@@ -1,5 +1,6 @@
 """训练任务路由。"""
 
+import logging
 import uuid
 from typing import Optional
 
@@ -13,6 +14,7 @@ from app.models.training import Training
 from app.models.user import User
 from app.schemas.training import TrainingCreate, TrainingResponse, TrainingListResponse
 
+logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
@@ -47,9 +49,8 @@ async def create_training(
             **config_dict,
         }
         train_model_task.delay(str(training.id), train_config)
-    except Exception:
-        # Celery 不可用时不阻塞创建
-        pass
+    except Exception as e:
+        logger.warning("Celery 任务提交失败（训练 %s）: %s", training.id, e)
 
     return training
 

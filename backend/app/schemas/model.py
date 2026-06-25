@@ -24,7 +24,7 @@ class ModelResponse(BaseModel):
     version: str
     model_version: str
     description: Optional[str] = None
-    file_path: str
+    # file_path 不暴露给客户端
     file_size: Optional[int] = None
     metrics: Optional[Dict[str, Any]] = None
     tags: Optional[List[str]] = None

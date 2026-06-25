@@ -1,5 +1,6 @@
 """模型部署 Schemas"""
 
+import uuid
 from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, List, Optional
@@ -26,13 +27,13 @@ class DeployConfig(BaseModel):
     img_size: int = Field(640, ge=32, le=4096, description="输入图像大小")
     conf_threshold: float = Field(0.25, ge=0.0, le=1.0, description="置信度阈值")
     iou_threshold: float = Field(0.45, ge=0.0, le=1.0, description="IOU 阈值")
-    extra: Optional[Dict[str, Any]] = Field(None, description="额外配置")
+    # extra 字段已移除，避免任意参数注入
 
 
 class DeploymentCreate(BaseModel):
     """创建部署请求"""
 
-    model_id: str = Field(..., description="模型 ID")
+    model_id: uuid.UUID = Field(..., description="模型 ID")
     name: str = Field(..., min_length=1, max_length=255, description="部署名称")
     config: DeployConfig = Field(default_factory=DeployConfig, description="部署配置")
 

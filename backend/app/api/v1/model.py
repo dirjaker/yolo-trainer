@@ -9,13 +9,43 @@ from fastapi.responses import FileResponse
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import get_settings
 from app.core.database import get_db
 from app.core.security import get_current_user
 from app.models.model import ModelVersion
+from app.models.training import Training
 from app.models.user import User
 from app.schemas.model import ModelExport, ModelResponse, ModelListResponse
 
 router = APIRouter()
+
+settings = get_settings()
+
+# 模型文件允许的根目录
+MODEL_BASE_DIR = os.path.realpath(os.environ.get("MODEL_DIR", "/data/models"))
+UPLOAD_BASE_DIR = os.path.realpath(os.environ.get("UPLOAD_DIR", "/data/uploads"))
+
+
+async def _get_owned_model(model_id: uuid.UUID, user_id: uuid.UUID, db: AsyncSession) -> ModelVersion:
+    """获取模型并校验所有权（通过 Training.user_id 关联）。"""
+    result = await db.execute(
+        select(ModelVersion)
+        .join(Training, ModelVersion.training_id == Training.id)
+        .where(ModelVersion.id == model_id, Training.user_id == user_id)
+    )
+    model = result.scalar_one_or_none()
+    if not model:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="模型不存在")
+    return model
+
+
+def _safe_path(file_path: str, allowed_dirs: list[str]) -> str:
+    """校验路径在允许的目录内，防止路径穿越。"""
+    real = os.path.realpath(file_path)
+    for d in allowed_dirs:
+        if real.startswith(os.path.realpath(d) + os.sep) or real == os.path.realpath(d):
+            return real
+    raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="文件路径不在允许范围内")
 
 
 @router.get("/", response_model=ModelListResponse)
@@ -27,8 +57,12 @@ async def list_models(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """获取模型列表。"""
-    query = select(ModelVersion)
+    """获取当前用户的模型列表。"""
+    query = (
+        select(ModelVersion)
+        .join(Training, ModelVersion.training_id == Training.id)
+        .where(Training.user_id == current_user.id)
+    )
 
     if model_version:
         query = query.where(ModelVersion.model_version == model_version)
@@ -56,12 +90,8 @@ async def get_model(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """获取模型详情。"""
-    result = await db.execute(select(ModelVersion).where(ModelVersion.id == model_id))
-    model = result.scalar_one_or_none()
-    if not model:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="模型不存在")
-    return model
+    """获取模型详情（仅限自己的模型）。"""
+    return await _get_owned_model(model_id, current_user.id, db)
 
 
 @router.post("/{model_id}/export")
@@ -71,11 +101,8 @@ async def export_model(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """导出模型为指定格式（ONNX、TorchScript 等）。"""
-    result = await db.execute(select(ModelVersion).where(ModelVersion.id == model_id))
-    model = result.scalar_one_or_none()
-    if not model:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="模型不存在")
+    """导出模型为指定格式（仅限自己的模型）。"""
+    model = await _get_owned_model(model_id, current_user.id, db)
 
     try:
         from app.tasks.export_tasks import export_model_task
@@ -98,11 +125,8 @@ async def add_tags(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """为模型添加标签。"""
-    result = await db.execute(select(ModelVersion).where(ModelVersion.id == model_id))
-    model = result.scalar_one_or_none()
-    if not model:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="模型不存在")
+    """为模型添加标签（仅限自己的模型）。"""
+    model = await _get_owned_model(model_id, current_user.id, db)
 
     existing_tags = set(model.tags or [])
     existing_tags.update(tags)
@@ -118,16 +142,14 @@ async def get_model_versions(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """获取模型的所有版本历史。"""
-    result = await db.execute(select(ModelVersion).where(ModelVersion.id == model_id))
-    model = result.scalar_one_or_none()
-    if not model:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="模型不存在")
+    """获取模型的所有版本历史（仅限自己的模型）。"""
+    model = await _get_owned_model(model_id, current_user.id, db)
 
-    # 获取同名模型的所有版本
+    # 获取同名模型的所有版本（仅限当前用户）
     versions_result = await db.execute(
         select(ModelVersion)
-        .where(ModelVersion.name == model.name)
+        .join(Training, ModelVersion.training_id == Training.id)
+        .where(ModelVersion.name == model.name, Training.user_id == current_user.id)
         .order_by(ModelVersion.created_at.desc())
     )
     versions = versions_result.scalars().all()
@@ -150,18 +172,16 @@ async def download_model(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """下载模型文件。"""
-    result = await db.execute(select(ModelVersion).where(ModelVersion.id == model_id))
-    model = result.scalar_one_or_none()
-    if not model:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="模型不存在")
+    """下载模型文件（仅限自己的模型）。"""
+    model = await _get_owned_model(model_id, current_user.id, db)
 
     if not model.file_path or not os.path.isfile(model.file_path):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="模型文件不存在")
 
-    filename = os.path.basename(model.file_path)
+    safe = _safe_path(model.file_path, [MODEL_BASE_DIR, UPLOAD_BASE_DIR])
+    filename = os.path.basename(safe)
     return FileResponse(
-        path=model.file_path,
+        path=safe,
         filename=filename,
         media_type="application/octet-stream",
     )
@@ -173,16 +193,14 @@ async def delete_model(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """删除模型及其文件。"""
+    """删除模型及其文件（仅限自己的模型）。"""
     import shutil
 
-    result = await db.execute(select(ModelVersion).where(ModelVersion.id == model_id))
-    model = result.scalar_one_or_none()
-    if not model:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="模型不存在")
+    model = await _get_owned_model(model_id, current_user.id, db)
 
-    # 删除模型文件
+    # 删除模型文件（校验路径安全）
     if model.file_path and os.path.exists(model.file_path):
-        shutil.rmtree(os.path.dirname(model.file_path), ignore_errors=True)
+        safe = _safe_path(model.file_path, [MODEL_BASE_DIR, UPLOAD_BASE_DIR])
+        shutil.rmtree(os.path.dirname(safe), ignore_errors=True)
 
     await db.delete(model)
