@@ -1,15 +1,22 @@
 <template>
-  <div>
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
-      <n-space>
-        <n-select v-model:value="filter.status" :options="statusOptions" placeholder="状态筛选" clearable style="width:160px" @update:value="fetchData" />
-      </n-space>
+  <div class="page-content">
+    <div class="page-header">
+      <h2 class="page-title">训练任务</h2>
       <n-button type="primary" @click="$router.push('/training/create')">创建训练</n-button>
     </div>
-    <n-data-table :columns="columns" :data="store.trainings" :loading="loading" :bordered="false" />
-    <div style="margin-top:16px;display:flex;justify-content:flex-end">
-      <n-pagination v-model:page="page" :page-size="pageSize" :item-count="store.total" @update:page="fetchData" />
-    </div>
+    <n-card class="content-card" :bordered="true">
+      <div class="filter-row">
+        <n-select v-model:value="filter.status" :options="statusOptions" placeholder="状态筛选" clearable style="width:200px" @update:value="fetchData" />
+      </div>
+      <n-data-table :columns="columns" :data="store.trainings" :loading="loading" :bordered="false">
+        <template #empty>
+          <n-empty description="暂无训练任务" />
+        </template>
+      </n-data-table>
+      <div class="pagination-row">
+        <n-pagination v-model:page="page" :page-size="pageSize" :item-count="store.total" @update:page="fetchData" />
+      </div>
+    </n-card>
   </div>
 </template>
 
@@ -74,3 +81,42 @@ async function handleStop(id) {
 
 onMounted(fetchData)
 </script>
+
+<style scoped>
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.page-title {
+  font-size: 22px;
+  font-weight: 600;
+  color: #1F2937;
+  margin: 0;
+}
+
+.content-card {
+  border-radius: 14px;
+  background: #FFFFFF;
+}
+
+.content-card :deep(.n-card) {
+  border-radius: 14px;
+  border-color: #F0EFEC;
+}
+
+.filter-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.pagination-row {
+  margin-top: 16px;
+  display: flex;
+  justify-content: flex-end;
+}
+</style>

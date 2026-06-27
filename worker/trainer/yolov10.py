@@ -38,6 +38,15 @@ class YOLOv10Trainer(BaseTrainer):
         "yolov10x": "yolov10x.pt",
     }
 
+    # 允许用户传入的额外训练参数（白名单）
+    _SAFE_EXTRA_KEYS = {
+        "mosaic", "mixup", "copy_paste", "erasing", "hsv_h", "hsv_s", "hsv_v",
+        "degrees", "translate", "scale", "shear", "perspective", "flipud", "fliplr",
+        "bgr", "auto_augment", "cos_lr", "close_mosaic", "label_smoothing",
+        "nbs", "overlap_mask", "mask_ratio", "dropout", "val", "save", "save_json",
+        "save_hybrid", "conf", "iou", "max_det", "half", "dnn", "plots",
+    }
+
     def __init__(self, callback: Optional[TrainCallback] = None):
         super().__init__(callback)
 
@@ -87,7 +96,13 @@ class YOLOv10Trainer(BaseTrainer):
                 train_args["resume"] = resume_path
                 train_args.pop("data", None)
 
-            train_args.update(config.extra)
+            # Merge extra args（仅允许白名单内的参数）
+            if config.extra:
+                safe_extra = {k: v for k, v in config.extra.items() if k in self._SAFE_EXTRA_KEYS}
+                dropped = set(config.extra.keys()) - self._SAFE_EXTRA_KEYS
+                if dropped:
+                    import logging; logging.getLogger(__name__).warning("过滤掉不安全的训练参数: %s", dropped)
+                train_args.update(safe_extra)
 
             # Bridge ultralytics events to our TrainCallback
             if self.callback:

@@ -48,6 +48,7 @@ class Deployment(Base):
     stopped_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     # Relationships
+    user = relationship("User", back_populates="deployments")
     model_version = relationship("ModelVersion")
 
     def __repr__(self) -> str:

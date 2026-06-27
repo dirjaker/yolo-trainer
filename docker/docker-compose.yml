@@ -20,7 +20,7 @@ services:
       context: ..
       dockerfile: docker/Dockerfile.backend
     ports:
-      - "8000:8000"
+      - "10003:8000"
     environment:
       - DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/yolo_trainer
       - REDIS_URL=redis://redis:6379/0

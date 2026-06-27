@@ -1,5 +1,6 @@
 """Model schemas."""
 
+import uuid
 from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, List, Optional
@@ -18,8 +19,8 @@ class ExportFormat(str, Enum):
 
 class ModelResponse(BaseModel):
     """Schema for model response."""
-    id: int
-    training_id: int
+    id: uuid.UUID
+    training_id: uuid.UUID
     name: str
     version: str
     model_version: str

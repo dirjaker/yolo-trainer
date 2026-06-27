@@ -8,9 +8,9 @@ export const useUserStore = defineStore('user', () => {
 
   async function login(form) {
     const res = await loginApi(form.username, form.password)
-    token.value = res.token
+    token.value = res.access_token
     username.value = form.username
-    localStorage.setItem('token', res.token)
+    localStorage.setItem('token', res.access_token)
     localStorage.setItem('username', form.username)
   }
 

@@ -68,7 +68,7 @@ ACCESS_TOKEN_EXPIRE_MINUTES=1440
 
 # App
 APP_NAME=YOLO Trainer
-APP_PORT=8000
+APP_PORT=10003
 DEBUG=true
 EOF
     echo "Created .env - please review and update secrets!"
@@ -92,6 +92,6 @@ echo "Next steps:"
 echo "  1. Start PostgreSQL, Redis, and MinIO services"
 echo "  2. Review and update .env with your credentials"
 echo "  3. Run migrations:  cd backend && source venv/bin/activate && alembic upgrade head"
-echo "  4. Start backend:   cd backend && uvicorn app.main:app --reload --port 8000"
+echo "  4. Start backend:   cd backend && uvicorn app.main:app --reload --port 10003"
 echo "  5. Start worker:    cd worker && source venv/bin/activate && celery -A tasks worker --loglevel=info"
 echo "  6. Start frontend:  cd frontend && npm run dev"

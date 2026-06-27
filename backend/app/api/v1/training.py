@@ -141,9 +141,17 @@ async def get_training_logs(
     if not training:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="训练任务不存在")
 
-    # TODO: 从日志文件或 Redis 中读取实时日志
-    # 目前返回占位响应
-    return {"training_id": str(training.id), "logs": []}
+    # 从日志文件读取实时日志
+    import os as _os
+    from pathlib import Path as _Path
+
+    _logs_dir = _Path(_os.environ.get("TRAINING_DIR", "/data/training")) / "logs"
+    log_file = _logs_dir / f"{training.id}.log"
+    logs: list[str] = []
+    if log_file.exists():
+        lines = log_file.read_text(encoding="utf-8").splitlines()
+        logs = lines[-200:]  # 最近 200 行
+    return {"training_id": str(training.id), "logs": logs}
 
 
 @router.get("/{training_id}/metrics")

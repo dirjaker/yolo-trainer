@@ -1,35 +1,32 @@
-"""用户认证服务"""
+"""用户认证服务（同步版本，供 Celery 任务和 Service 层使用）。"""
 
-from datetime import datetime, timedelta
+import bcrypt
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from jose import jwt
-from passlib.context import CryptContext
 from sqlalchemy.orm import Session
 
-from app.core.config import settings
+from app.core.config import get_settings
 from app.models.user import User
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24  # 24 hours
+_settings = get_settings()
 
 
 def get_password_hash(password: str) -> str:
-    return pwd_context.hash(password)
+    return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    return pwd_context.verify(plain_password, hashed_password)
+    return bcrypt.checkpw(plain_password.encode("utf-8"), hashed_password.encode("utf-8"))
 
 
 def create_user(db: Session, user_data: dict) -> User:
-    """创建新用户
+    """创建新用户。
 
     Args:
         db: 数据库会话
-        user_data: 用户数据，包含 username, password, email 等
+        user_data: {username, password, email, is_superuser?}
 
     Returns:
         User: 创建的用户对象
@@ -49,38 +46,33 @@ def create_user(db: Session, user_data: dict) -> User:
 
 
 def authenticate_user(db: Session, username: str, password: str) -> Optional[User]:
-    """验证用户身份
-
-    Args:
-        db: 数据库会话
-        username: 用户名
-        password: 密码
+    """验证用户名密码。
 
     Returns:
-        User or None: 验证成功返回用户对象，失败返回 None
+        User if authenticated, None otherwise.
     """
     user = db.query(User).filter(User.username == username).first()
-    if not user:
-        return None
-    if not verify_password(password, user.hashed_password):
+    if not user or not verify_password(password, user.hashed_password):
         return None
     return user
 
 
 def create_access_token(user_id: str, expires_delta: Optional[timedelta] = None) -> str:
-    """创建 JWT 访问令牌
+    """创建 JWT access token。
 
     Args:
         user_id: 用户 ID
         expires_delta: 过期时间增量
 
     Returns:
-        str: JWT 令牌
+        JWT token string
     """
-    if expires_delta:
-        expire = datetime.utcnow() + expires_delta
-    else:
-        expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    expire = datetime.now(timezone.utc) + (
+        expires_delta or timedelta(minutes=_settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES)
+    )
     to_encode = {"sub": str(user_id), "exp": expire}
-    encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=ALGORITHM)
-    return encoded_jwt
+    return jwt.encode(
+        to_encode,
+        _settings.JWT_SECRET_KEY,
+        algorithm=_settings.JWT_ALGORITHM,
+    )

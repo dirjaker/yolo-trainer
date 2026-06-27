@@ -3,9 +3,9 @@
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import DateTime, String, Text
+from sqlalchemy import DateTime, ForeignKey, String, Text
 from sqlalchemy.dialects.postgresql import JSON, UUID
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
 
@@ -19,9 +19,11 @@ class CompareResult(Base):
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
     name: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True
+    )
     status: Mapped[str] = mapped_column(
         String(20), nullable=False, default="pending", index=True
-        # pending, running, completed, failed
     )
     model_ids: Mapped[list] = mapped_column(JSON, nullable=False)
     test_dataset_id: Mapped[uuid.UUID] = mapped_column(
@@ -34,5 +36,4 @@ class CompareResult(Base):
     )
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
-    def __repr__(self) -> str:
-        return f"<CompareResult {self.name} [{self.status}]>"
+    user = relationship("User", back_populates="compare_results")

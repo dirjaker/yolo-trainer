@@ -21,7 +21,7 @@ from app.schemas.hyperparameter import (
 router = APIRouter()
 
 
-@router.post("/search", response_model=HyperparameterSearchResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/searches", response_model=HyperparameterSearchResponse, status_code=status.HTTP_201_CREATED)
 async def create_search(
     search_in: HyperparameterSearchCreate,
     db: AsyncSession = Depends(get_db),
@@ -68,7 +68,7 @@ async def create_search(
     return search
 
 
-@router.get("/search", response_model=HyperparameterSearchListResponse)
+@router.get("/searches", response_model=HyperparameterSearchListResponse)
 async def list_searches(
     status_filter: Optional[str] = Query(None, alias="status"),
     page: int = Query(1, ge=1),
@@ -93,7 +93,7 @@ async def list_searches(
     return HyperparameterSearchListResponse(items=searches, total=total, page=page, page_size=page_size)
 
 
-@router.get("/search/{search_id}", response_model=HyperparameterSearchResponse)
+@router.get("/searches/{search_id}", response_model=HyperparameterSearchResponse)
 async def get_search(
     search_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
@@ -112,7 +112,7 @@ async def get_search(
     return search
 
 
-@router.get("/search/{search_id}/trials", response_model=list[TrialResponse])
+@router.get("/searches/{search_id}/trials", response_model=list[TrialResponse])
 async def get_trials(
     search_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
@@ -138,7 +138,7 @@ async def get_trials(
     return list(trials_result.scalars().all())
 
 
-@router.post("/search/{search_id}/cancel", response_model=HyperparameterSearchResponse)
+@router.post("/searches/{search_id}/cancel", response_model=HyperparameterSearchResponse)
 async def cancel_search(
     search_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),

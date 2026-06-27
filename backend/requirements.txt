@@ -3,7 +3,7 @@ uvicorn[standard]
 sqlalchemy[asyncio]
 asyncpg
 alembic
-pydantic
+pydantic[email]
 pydantic-settings
 python-jose[cryptography]
 passlib[bcrypt]
@@ -13,3 +13,4 @@ redis
 minio
 httpx
 Pillow
+pyyaml

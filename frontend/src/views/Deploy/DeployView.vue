@@ -1,9 +1,9 @@
 <template>
-  <div>
-    <n-card title="模型部署">
-      <n-grid :cols="2" :x-gap="16">
+  <div class="view-wrapper">
+    <n-card title="模型部署" class="section-card">
+      <n-grid :cols="2" :x-gap="16" :y-gap="16">
         <n-gi>
-          <n-card title="创建部署" size="small">
+          <n-card title="创建部署" size="small" class="section-card">
             <n-form label-placement="left" label-width="100" :model="form">
               <n-form-item label="选择模型">
                 <n-select v-model:value="form.modelId" :options="modelOptions" placeholder="选择模型" />
@@ -36,7 +36,7 @@
           </n-card>
         </n-gi>
         <n-gi>
-          <n-card title="部署说明" size="small">
+          <n-card title="部署说明" size="small" class="section-card">
             <n-alert type="info" style="margin-bottom: 12px">
               部署后将生成 API 端点，可通过 HTTP 请求调用模型推理服务。
             </n-alert>
@@ -56,7 +56,7 @@
       </n-grid>
     </n-card>
 
-    <n-card title="部署列表" style="margin-top: 16px">
+    <n-card title="部署列表" class="section-card">
       <n-data-table :columns="columns" :data="deployments" :bordered="false" :loading="loading" />
     </n-card>
   </div>
@@ -173,3 +173,14 @@ async function handleStop(id) {
   }
 }
 </script>
+
+<style scoped>
+.view-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.view-wrapper :deep(.n-card) {
+  border-radius: 14px;
+}
+</style>

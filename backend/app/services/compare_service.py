@@ -15,21 +15,21 @@ def create_compare(
     db: Session,
     model_ids: List[str],
     test_dataset_id: str,
+    user_id,
     name: Optional[str] = None,
 ) -> CompareResult:
-    """创建模型对比任务
+    """创建模型对比任务。
 
     Args:
         db: 数据库会话
         model_ids: 模型 ID 列表
         test_dataset_id: 测试数据集 ID
+        user_id: 用户 ID
         name: 对比任务名称
-
-    Returns:
-        CompareResult: 对比结果对象
     """
     compare = CompareResult(
         id=uuid.uuid4(),
+        user_id=user_id,
         name=name or f"compare-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}",
         status="pending",
         model_ids=model_ids,
@@ -39,43 +39,26 @@ def create_compare(
     db.commit()
     db.refresh(compare)
 
-    # 异步执行对比任务
+    # 异步执行对比
     from app.tasks.compare_tasks import run_compare_task
-
     run_compare_task.delay(str(compare.id))
 
     return compare
 
 
 def get_compare(db: Session, compare_id: str) -> Optional[CompareResult]:
-    """获取对比结果
-
-    Args:
-        db: 数据库会话
-        compare_id: 对比任务 ID
-
-    Returns:
-        CompareResult or None
-    """
+    """获取对比结果。"""
     return db.query(CompareResult).filter(CompareResult.id == compare_id).first()
 
 
 def list_compares(
     db: Session,
+    user_id,
     page: int = 1,
     page_size: int = 20,
-) -> tuple[List[CompareResult], int]:
-    """列出对比任务
-
-    Args:
-        db: 数据库会话
-        page: 页码
-        page_size: 每页数量
-
-    Returns:
-        (list, total): 对比任务列表和总数
-    """
-    query = db.query(CompareResult)
+) -> tuple:
+    """列出当前用户的对比任务。"""
+    query = db.query(CompareResult).filter(CompareResult.user_id == user_id)
     total = query.count()
     items = (
         query.order_by(CompareResult.created_at.desc())
@@ -87,12 +70,7 @@ def list_compares(
 
 
 def run_compare(db: Session, compare_id: str) -> None:
-    """执行模型对比（同步版本，供 Celery Task 调用）
-
-    Args:
-        db: 数据库会话
-        compare_id: 对比任务 ID
-    """
+    """执行模型对比（同步版本，供 Celery Task 调用）。"""
     compare = get_compare(db, compare_id)
     if not compare:
         return
@@ -125,20 +103,15 @@ def run_compare(db: Session, compare_id: str) -> None:
 
 
 def _evaluate_model(model: ModelVersion, test_dataset_id: uuid.UUID) -> dict:
-    """评估单个模型
+    """评估单个模型 —— 使用真实 YOLO 验证。
 
-    Args:
-        model: 模型对象
-        test_dataset_id: 测试数据集 ID
-
-    Returns:
-        dict: 评估指标
+    优先使用训练时保存的指标，否则在测试集上运行 val()。
     """
-    # 如果模型已有指标，直接使用
-    if model.metrics:
+    # 训练指标中已有 mAP 等数据
+    if model.metrics and model.metrics.get("mAP50") is not None:
         return {
             "mAP50": model.metrics.get("mAP50", 0.0),
-            "mAP50_95": model.metrics.get("mAP50_95", 0.0),
+            "mAP50_95": model.metrics.get("mAP50-95", 0.0) or model.metrics.get("mAP50_95", 0.0),
             "precision": model.metrics.get("precision", 0.0),
             "recall": model.metrics.get("recall", 0.0),
             "f1_score": model.metrics.get("f1_score", 0.0),
@@ -149,23 +122,41 @@ def _evaluate_model(model: ModelVersion, test_dataset_id: uuid.UUID) -> dict:
             "per_class_metrics": model.metrics.get("per_class_metrics"),
         }
 
-    # 否则在测试集上运行评估
+    # 否则在测试集上运行真实的 val()
     try:
         from ultralytics import YOLO
 
-        if not os.path.exists(model.file_path):
-            raise FileNotFoundError(f"模型文件不存在: {model.file_path}")
+        if not os.path.isfile(model.file_path):
+            return _empty_metrics(model)
+
+        # 解析数据集路径
+        from pathlib import Path
+        from app.models.dataset import Dataset
+        from app.core.database import SessionLocal
+
+        test_db = SessionLocal()
+        try:
+            dataset = test_db.query(Dataset).filter(Dataset.id == test_dataset_id).first()
+            data_yaml = None
+            if dataset:
+                extract_dir = Path(dataset.file_path).with_suffix("")
+                yamls = list(extract_dir.glob("*.yaml")) + list(extract_dir.glob("*.yml"))
+                data_yaml = str(yamls[0]) if yamls else None
+        finally:
+            test_db.close()
 
         yolo_model = YOLO(model.file_path)
-        # TODO: 获取测试数据集路径并运行评估
-        # results = yolo_model.val(data=test_dataset_path)
+        val_kwargs = {}
+        if data_yaml:
+            val_kwargs["data"] = data_yaml
+        results = yolo_model.val(**val_kwargs)
 
-        # 暂时返回默认值
+        rd = results.results_dict if hasattr(results, "results_dict") else {}
         return {
-            "mAP50": 0.0,
-            "mAP50_95": 0.0,
-            "precision": 0.0,
-            "recall": 0.0,
+            "mAP50": float(rd.get("metrics/mAP50(B)", 0.0)),
+            "mAP50_95": float(rd.get("metrics/mAP50-95(B)", 0.0)),
+            "precision": float(rd.get("metrics/precision(B)", 0.0)),
+            "recall": float(rd.get("metrics/recall(B)", 0.0)),
             "f1_score": 0.0,
             "inference_speed_ms": None,
             "model_size_mb": round(model.file_size / (1024 * 1024), 2) if model.file_size else None,
@@ -173,18 +164,20 @@ def _evaluate_model(model: ModelVersion, test_dataset_id: uuid.UUID) -> dict:
             "flops": None,
             "per_class_metrics": None,
         }
+    except Exception:
+        return _empty_metrics(model)
 
-    except ImportError:
-        # ultralytics 未安装，返回文件大小等基础信息
-        return {
-            "mAP50": None,
-            "mAP50_95": None,
-            "precision": None,
-            "recall": None,
-            "f1_score": None,
-            "inference_speed_ms": None,
-            "model_size_mb": round(model.file_size / (1024 * 1024), 2) if model.file_size else None,
-            "params_count": None,
-            "flops": None,
-            "per_class_metrics": None,
-        }
+
+def _empty_metrics(model: ModelVersion) -> dict:
+    return {
+        "mAP50": 0.0,
+        "mAP50_95": 0.0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1_score": 0.0,
+        "inference_speed_ms": None,
+        "model_size_mb": round(model.file_size / (1024 * 1024), 2) if model.file_size else None,
+        "params_count": None,
+        "flops": None,
+        "per_class_metrics": None,
+    }

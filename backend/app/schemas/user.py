@@ -1,5 +1,6 @@
 """User schemas."""
 
+import uuid
 from datetime import datetime
 from typing import Optional
 
@@ -15,7 +16,7 @@ class UserCreate(BaseModel):
 
 class UserResponse(BaseModel):
     """Schema for user response."""
-    id: int
+    id: uuid.UUID
     username: str
     email: str
     is_active: bool = True

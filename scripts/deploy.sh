@@ -45,7 +45,7 @@ up() {
     # 健康检查
     local retries=30
     while [ $retries -gt 0 ]; do
-        if curl -sf http://localhost:8000/health > /dev/null 2>&1; then
+        if curl -sf http://localhost:10003/health > /dev/null 2>&1; then
             log "后端服务已就绪 ✅"
             break
         fi
@@ -58,7 +58,7 @@ up() {
     log "服务启动完成 🚀"
     echo ""
     echo "  前端:     http://localhost:5173"
-    echo "  API 文档: http://localhost:8000/docs"
+    echo "  API 文档: http://localhost:10003/docs"
     echo "  Flower:   http://localhost:5555"
     echo "  MinIO:    http://localhost:9001"
     echo ""

@@ -46,7 +46,30 @@ def _run_single_trial(
     Returns:
         dict with training metrics
     """
-    from worker.trainer import get_trainer
+    import sys
+    from pathlib import Path as _Path
+    _PROJECT_ROOT = _Path(__file__).resolve().parent.parent.parent.parent
+    if str(_PROJECT_ROOT) not in sys.path:
+        sys.path.insert(0, str(_PROJECT_ROOT))
+
+    def _get_trainer(model_version: str):
+        mv_lower = model_version.lower()
+        if mv_lower.startswith("yolov5"):
+            from worker.trainer.yolov5 import YOLOv5Trainer
+            return YOLOv5Trainer()
+        elif mv_lower.startswith("yolov8"):
+            from worker.trainer.yolov8 import YOLOv8Trainer
+            return YOLOv8Trainer()
+        elif mv_lower.startswith("yolov9"):
+            from worker.trainer.yolov9 import YOLOv9Trainer
+            return YOLOv9Trainer()
+        elif mv_lower.startswith("yolov10"):
+            from worker.trainer.yolov10 import YOLOv10Trainer
+            return YOLOv10Trainer()
+        else:
+            from worker.trainer.yolov8 import YOLOv8Trainer
+            return YOLOv8Trainer()
+
     from worker.trainer.base import TrainConfig
 
     config = TrainConfig(
@@ -63,7 +86,7 @@ def _run_single_trial(
         project_name=f"trial_{int(time.time())}",
     )
 
-    trainer = get_trainer(model_version)
+    trainer = _get_trainer(model_version)
     result = trainer.train(config)
 
     if result.success:
@@ -147,7 +170,13 @@ def run_hyperparameter_search_task(self, search_id: str, config: dict) -> dict:
             study_name=f"search_{search_id}",
         )
 
-        dataset_config_path = base_config.get("dataset_config", f"datasets/{config['dataset_id']}/data.yaml")
+        # 从数据库解析数据集配置路径
+        dataset_config_path = base_config.get("dataset_config")
+        if not dataset_config_path:
+            from pathlib import Path as _P
+            _extract_dir = _P(f"/data/uploads/datasets/{config['dataset_id']}")
+            _yamls = list(_extract_dir.glob("*.yaml")) + list(_extract_dir.glob("*.yml"))
+            dataset_config_path = str(_yamls[0]) if _yamls else f"datasets/{config['dataset_id']}/data.yaml"
         best_metric = None
         best_params = None
         completed = 0

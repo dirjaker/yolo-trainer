@@ -1,6 +1,6 @@
 <template>
-  <div>
-    <n-card title="活动日志">
+  <div class="view-wrapper">
+    <n-card title="活动日志" class="section-card">
       <template #header-extra>
         <n-space>
           <n-select
@@ -27,19 +27,21 @@
         </n-space>
       </template>
 
-      <n-timeline>
-        <n-timeline-item
-          v-for="activity in activities"
-          :key="activity.id"
-          :type="getTimelineType(activity.type)"
-          :title="activity.title"
-          :content="activity.content"
-          :time="activity.created_at"
-        />
-      </n-timeline>
-      <n-empty v-if="!activities.length && !loading" description="暂无活动记录" />
+      <n-spin :show="loading">
+        <n-timeline v-if="activities.length">
+          <n-timeline-item
+            v-for="activity in activities"
+            :key="activity.id"
+            :type="getTimelineType(activity.type)"
+            :title="activity.title"
+            :content="activity.content"
+            :time="activity.created_at"
+          />
+        </n-timeline>
+        <n-empty v-if="!activities.length && !loading" description="暂无活动记录" />
+      </n-spin>
 
-      <div style="margin-top: 16px; text-align: center">
+      <div v-if="pagination.pageCount > 1" style="margin-top: 16px; text-align: center">
         <n-pagination
           v-model:page="pagination.page"
           :page-count="pagination.pageCount"
@@ -110,3 +112,14 @@ async function loadActivities() {
   loading.value = false
 }
 </script>
+
+<style scoped>
+.view-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.view-wrapper :deep(.n-card) {
+  border-radius: 14px;
+}
+</style>

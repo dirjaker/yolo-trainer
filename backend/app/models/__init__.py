@@ -7,3 +7,5 @@ from app.models.dataset import Dataset  # noqa: F401
 from app.models.team import Team, TeamMember  # noqa: F401
 from app.models.activity import Activity  # noqa: F401
 from app.models.hyperparameter import HyperparameterSearch, HyperparameterTrial  # noqa: F401
+from app.models.compare import CompareResult  # noqa: F401
+from app.models.deployment import Deployment  # noqa: F401

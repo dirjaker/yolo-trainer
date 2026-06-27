@@ -5,8 +5,9 @@ import logging
 from functools import wraps
 from typing import AsyncGenerator, Optional
 
+from sqlalchemy import create_engine
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
-from sqlalchemy.orm import DeclarativeBase
+from sqlalchemy.orm import DeclarativeBase, sessionmaker
 
 from app.core.config import get_settings
 
@@ -65,6 +66,22 @@ async_session = async_sessionmaker(
     expire_on_commit=False,
 )
 
+# ── 同步会话（Celery 任务 / Service 层使用） ─────────────────────────────
+_sync_url = settings.DATABASE_URL.replace("+aiosqlite", "+pysqlite").replace("+asyncpg", "+psycopg2")
+_sync_engine = create_engine(
+    _sync_url,
+    echo=settings.DEBUG,
+    pool_pre_ping=True,
+    pool_size=5,
+    max_overflow=10,
+    pool_recycle=1800,
+)
+SessionLocal = sessionmaker(
+    bind=_sync_engine,
+    autocommit=False,
+    autoflush=False,
+)
+
 
 class Base(DeclarativeBase):
     pass
@@ -88,3 +105,12 @@ async def init_db():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     logger.info("Database tables initialised.")
+
+
+def get_db_sync():
+    """FastAPI 依赖注入 —— 获取同步数据库会话（供 sync service 使用）。"""
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()

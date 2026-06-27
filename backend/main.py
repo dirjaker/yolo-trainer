@@ -39,8 +39,8 @@ app = FastAPI(
     title=settings.APP_NAME,
     version=settings.APP_VERSION,
     description="基于 YOLO 的目标检测模型训练平台 API",
-    docs_url="/docs" if settings.DEBUG else None,
-    redoc_url="/redoc" if settings.DEBUG else None,
+    docs_url=None,  # 自定义 /docs，使用本地静态资源
+    redoc_url=None,
     lifespan=lifespan,
 )
 
@@ -81,6 +81,35 @@ from app.api.v1.metrics import router as metrics_router  # noqa: E402
 
 app.include_router(metrics_router, tags=["监控"])
 
-# ── 静态文件服务已移除 ─────────────────────────────────────────────────
-# 上传文件通过认证 API 端点访问，不公开暴露
-# 如需前端静态资源，使用 nginx 反向代理
+# ── 静态文件（Swagger UI 本地化，不依赖 CDN） ─────────────────────────────
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+from fastapi.responses import HTMLResponse  # noqa: E402
+
+
+@app.get("/docs", include_in_schema=False)
+async def custom_swagger_ui():
+    """本地 Swagger UI，不依赖外部 CDN。"""
+    return HTMLResponse(f"""<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link type="text/css" rel="stylesheet" href="/static/swagger-ui.css">
+    <link rel="icon" href="https://fastapi.tiangolo.com/img/favicon.png">
+    <title>{settings.APP_NAME} - Swagger UI</title>
+</head>
+<body>
+<div id="swagger-ui"></div>
+<script src="/static/swagger-ui-bundle.js"></script>
+<script>
+SwaggerUIBundle({{
+    url: '/openapi.json',
+    dom_id: '#swagger-ui',
+    deepLinking: true,
+    presets: [SwaggerUIBundle.presets.apis, SwaggerUIBundle.SwaggerUIStandalonePreset],
+    layout: "BaseLayout"
+}})
+</script>
+</body>
+</html>""")

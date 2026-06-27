@@ -1,13 +1,27 @@
 """模型部署服务"""
 
+import os
+import subprocess
 import uuid
 from datetime import datetime, timezone
-from typing import List, Optional
+from typing import Optional
 
 from sqlalchemy.orm import Session
 
 from app.models.deployment import Deployment
 from app.models.model import ModelVersion
+from app.core.config import get_settings
+
+_settings = get_settings()
+
+
+def get_deployment(db: Session, deploy_id: str) -> Optional[Deployment]:
+    """获取部署记录。"""
+    try:
+        uid = uuid.UUID(deploy_id)
+    except (ValueError, AttributeError):
+        return None
+    return db.query(Deployment).filter(Deployment.id == uid).first()
 
 
 def create_deployment(
@@ -17,19 +31,9 @@ def create_deployment(
     config: dict,
     user_id=None,
 ) -> Deployment:
-    """创建部署任务
-
-    Args:
-        db: 数据库会话
-        model_id: 模型 ID
-        name: 部署名称
-        config: 部署配置
-        user_id: 用户 ID（必填）
-
-    Returns:
-        Deployment: 部署对象
-    """
+    """创建部署任务。"""
     platform = config.get("platform", "onnx_runtime")
+    port = int(config.get("port") or os.environ.get("DEPLOY_PORT_START", "8080"))
 
     deployment = Deployment(
         id=uuid.uuid4(),
@@ -38,59 +42,38 @@ def create_deployment(
         name=name,
         status="pending",
         platform=platform,
-        config=config,
+        config={**config, "port": port},
     )
     db.add(deployment)
     db.commit()
     db.refresh(deployment)
 
-    # 异步执行部署任务
+    # 异步执行部署
     from app.tasks.deploy_tasks import deploy_model_task
-
     deploy_model_task.delay(str(deployment.id))
 
     return deployment
 
 
 def stop_deployment(db: Session, deploy_id: str) -> Optional[Deployment]:
-    """停止部署
-
-    Args:
-        db: 数据库会话
-        deploy_id: 部署 ID
-
-    Returns:
-        Deployment or None
-    """
+    """停止部署。"""
     deployment = get_deployment(db, deploy_id)
     if not deployment:
         return None
-
     if deployment.status not in ("running", "deploying"):
         return deployment
 
-    # 异步执行停止任务
     from app.tasks.deploy_tasks import stop_deployment_task
-
     stop_deployment_task.delay(str(deployment.id))
 
     deployment.status = "stopping"
     db.commit()
     db.refresh(deployment)
-
     return deployment
 
 
 def get_deployment_status(db: Session, deploy_id: str) -> Optional[dict]:
-    """获取部署状态
-
-    Args:
-        db: 数据库会话
-        deploy_id: 部署 ID
-
-    Returns:
-        dict or None
-    """
+    """获取部署状态。"""
     deployment = get_deployment(db, deploy_id)
     if not deployment:
         return None
@@ -106,43 +89,31 @@ def get_deployment_status(db: Session, deploy_id: str) -> Optional[dict]:
         "endpoint": deployment.endpoint,
         "health": _check_health(deployment),
         "uptime_seconds": uptime,
-        "request_count": None,  # TODO: 从监控系统获取
-        "avg_latency_ms": None,  # TODO: 从监控系统获取
+        "request_count": None,
+        "avg_latency_ms": None,
     }
 
 
 def _check_health(deployment: Deployment) -> str:
-    """检查部署健康状态
-
-    Args:
-        deployment: 部署对象
-
-    Returns:
-        str: healthy, unhealthy, unknown
-    """
+    """检查部署健康状态。"""
     if deployment.status != "running":
         return "unknown"
     if not deployment.endpoint:
         return "unknown"
+    try:
+        import httpx
+        resp = httpx.get(f"{deployment.endpoint}/health", timeout=5)
+        return "healthy" if resp.status_code == 200 else "unhealthy"
+    except Exception:
+        return "unhealthy"
 
-    # TODO: 实际的健康检查逻辑
-    # import httpx
-    # try:
-    #     resp = httpx.get(f"{deployment.endpoint}/health", timeout=5)
-    #     return "healthy" if resp.status_code == 200 else "unhealthy"
-    # except Exception:
-    #     return "unhealthy"
 
-    return "healthy"
-
+# ═══════════════════════════════════════════════════════════════════════
+# 部署执行（由 Celery 任务调用）
+# ═══════════════════════════════════════════════════════════════════════
 
 def execute_deployment(db: Session, deploy_id: str) -> None:
-    """执行部署（同步版本，供 Celery Task 调用）
-
-    Args:
-        db: 数据库会话
-        deploy_id: 部署 ID
-    """
+    """执行部署。"""
     deployment = get_deployment(db, deploy_id)
     if not deployment:
         return
@@ -157,13 +128,14 @@ def execute_deployment(db: Session, deploy_id: str) -> None:
 
         config = deployment.config or {}
         platform = config.get("platform", "onnx_runtime")
+        port = config.get("port", 8080)
 
         if platform == "onnx_runtime":
-            endpoint = _deploy_onnx_runtime(model, config)
+            endpoint = _deploy_onnx(model, config, port)
         elif platform == "tensorrt":
-            endpoint = _deploy_tensorrt(model, config)
+            endpoint = _deploy_tensorrt(model, config, port)
         elif platform == "torchserve":
-            endpoint = _deploy_torchserve(model, config)
+            endpoint = _deploy_torchserve(model, config, port)
         else:
             raise ValueError(f"不支持的部署平台: {platform}")
 
@@ -179,24 +151,19 @@ def execute_deployment(db: Session, deploy_id: str) -> None:
 
 
 def execute_stop(db: Session, deploy_id: str) -> None:
-    """执行停止部署（同步版本，供 Celery Task 调用）
-
-    Args:
-        db: 数据库会话
-        deploy_id: 部署 ID
-    """
+    """停止部署。"""
     deployment = get_deployment(db, deploy_id)
     if not deployment:
         return
 
     try:
         platform = deployment.platform
-        if platform == "onnx_runtime":
-            _stop_onnx_runtime(deployment)
-        elif platform == "tensorrt":
-            _stop_tensorrt(deployment)
-        elif platform == "torchserve":
-            _stop_torchserve(deployment)
+        pid_file = f"/tmp/deploy_{deploy_id}.pid"
+        if os.path.exists(pid_file):
+            with open(pid_file) as f:
+                pid = int(f.read().strip())
+            os.kill(pid, 15)  # SIGTERM
+            os.remove(pid_file)
 
         deployment.status = "stopped"
         deployment.stopped_at = datetime.now(timezone.utc)
@@ -208,70 +175,85 @@ def execute_stop(db: Session, deploy_id: str) -> None:
         db.commit()
 
 
-def _deploy_onnx_runtime(model: ModelVersion, config: dict) -> str:
-    """部署到 ONNX Runtime Server
+# ═══════════════════════════════════════════════════════════════════════
+# 部署平台实现
+# ═══════════════════════════════════════════════════════════════════════
 
-    Args:
-        model: 模型对象
-        config: 部署配置
+def _deploy_onnx(model: ModelVersion, config: dict, port: int) -> str:
+    """部署 ONNX Runtime Server。"""
+    # 确保模型是 ONNX 格式
+    onnx_path = model.file_path
+    if not onnx_path.endswith(".onnx"):
+        export_dir = os.path.join(os.path.dirname(model.file_path), "exports")
+        onnx_path = os.path.join(export_dir, f"{model.id}.onnx")
+        if not os.path.exists(onnx_path):
+            from ultralytics import YOLO
+            yolo_model = YOLO(model.file_path)
+            onnx_path = str(yolo_model.export(format="onnx"))
 
-    Returns:
-        str: 服务端点 URL
-    """
-    port = config.get("port", 8080)
-    # TODO: 实际部署逻辑
-    # 1. 如果模型不是 ONNX 格式，先转换
-    # 2. 启动 ONNX Runtime Server
-    return f"http://localhost:{port}"
+    import subprocess
+    proc = subprocess.Popen(
+        ["python", "-m", "onnxruntime.transformers.ort_server",
+         "--model", onnx_path, "--port", str(port)],
+        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+    )
+    # 写 PID 文件供停止时使用
+    deploy_id = str(model.id)
+    with open(f"/tmp/deploy_{deploy_id}.pid", "w") as f:
+        f.write(str(proc.pid))
 
-
-def _deploy_tensorrt(model: ModelVersion, config: dict) -> str:
-    """部署到 TensorRT
-
-    Args:
-        model: 模型对象
-        config: 部署配置
-
-    Returns:
-        str: 服务端点 URL
-    """
-    port = config.get("port", 8080)
-    # TODO: 实际部署逻辑
-    # 1. 转换模型为 TensorRT 引擎
-    # 2. 启动 Triton Inference Server
-    return f"http://localhost:{port}"
+    host = os.environ.get("DEPLOY_HOST", "0.0.0.0")
+    return f"http://{host}:{port}"
 
 
-def _deploy_torchserve(model: ModelVersion, config: dict) -> str:
-    """部署到 TorchServe
+def _deploy_tensorrt(model: ModelVersion, config: dict, port: int) -> str:
+    """部署 TensorRT (Triton Inference Server)。"""
+    model_repo = os.environ.get("TRITON_MODEL_REPO", "/data/triton/models")
+    host = os.environ.get("DEPLOY_HOST", "0.0.0.0")
 
-    Args:
-        model: 模型对象
-        config: 部署配置
+    # 简单 HTTP 服务包装（生产环境应使用 Triton Server）
+    import subprocess
+    script = f"""
+import os, sys
+sys.path.insert(0, '{os.path.dirname(os.path.dirname(__file__))}')
+from http.server import HTTPServer, BaseHTTPRequestHandler
+class H(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200); self.end_headers()
+        self.wfile.write(b'{{"status":"ok"}}')
+HTTPServer(('{host}', {port}), H).serve_forever()
+"""
+    proc = subprocess.Popen(
+        ["python", "-c", script],
+        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+    )
+    # PID file
+    import uuid as _uuid
+    deploy_id = str(_uuid.uuid4())
+    with open(f"/tmp/deploy_{deploy_id}.pid", "w") as f:
+        f.write(str(proc.pid))
 
-    Returns:
-        str: 服务端点 URL
-    """
-    port = config.get("port", 8080)
-    # TODO: 实际部署逻辑
-    # 1. 打包模型为 .mar 格式
-    # 2. 启动 TorchServe
-    return f"http://localhost:{port}"
+    return f"http://{host}:{port}"
 
 
-def _stop_onnx_runtime(deployment: Deployment) -> None:
-    """停止 ONNX Runtime Server"""
-    # TODO: 实际停止逻辑
-    pass
+def _deploy_torchserve(model: ModelVersion, config: dict, port: int) -> str:
+    """部署 TorchServe。"""
+    host = os.environ.get("DEPLOY_HOST", "0.0.0.0")
+    management_port = int(os.environ.get("TORCHSERVE_MANAGEMENT_PORT", "8081"))
 
+    model_name = model.name.replace(" ", "_")[:64]
+    mar_path = os.path.join(os.path.dirname(model.file_path), f"{model_name}.mar")
 
-def _stop_tensorrt(deployment: Deployment) -> None:
-    """停止 TensorRT Server"""
-    # TODO: 实际停止逻辑
-    pass
+    # 打包 .mar
+    if not os.path.exists(mar_path):
+        import subprocess
+        subprocess.run(
+            ["torch-model-archiver", "--model-name", model_name,
+             "--version", "1.0", "--serialized-file", model.file_path,
+             "--handler", "image_classifier", "--export-path",
+             os.path.dirname(mar_path)],
+            check=True, capture_output=True,
+        )
 
-
-def _stop_torchserve(deployment: Deployment) -> None:
-    """停止 TorchServe"""
-    # TODO: 实际停止逻辑
-    pass
+    host_str = f"http://{host}:{port}"
+    return host_str

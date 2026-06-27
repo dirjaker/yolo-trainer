@@ -1,17 +1,19 @@
 """测试 / 推理路由。"""
 
+import io
 import os
 import time
 import uuid
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
-from fastapi.responses import FileResponse
+from fastapi.responses import StreamingResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.security import get_current_user
 from app.models.model import ModelVersion
+from app.models.training import Training
 from app.models.user import User
 from app.schemas.test import TestResult
 
@@ -19,6 +21,74 @@ router = APIRouter()
 
 # 简单的内存缓存（生产环境应使用 Redis）
 _test_results: dict = {}
+
+
+async def _get_owned_model_for_test(
+    model_id: uuid.UUID, user_id: uuid.UUID, db: AsyncSession
+) -> ModelVersion:
+    """获取模型并校验所有权（通过 Training.user_id）。"""
+    result = await db.execute(
+        select(ModelVersion)
+        .join(Training, ModelVersion.training_id == Training.id)
+        .where(ModelVersion.id == model_id, Training.user_id == user_id)
+    )
+    model = result.scalar_one_or_none()
+    if not model:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="模型不存在或无权使用")
+    if not model.file_path or not os.path.isfile(model.file_path):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="模型文件不存在")
+    return model
+
+
+def _draw_boxes(image_bytes: bytes, detections: list, class_names: dict = None) -> bytes:
+    """在图片上绘制检测框并返回带标注的 PNG 字节。"""
+    from PIL import Image, ImageDraw, ImageFont
+
+    image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
+    draw = ImageDraw.Draw(image)
+
+    # 尝试加载字体，失败则用默认
+    try:
+        font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 14)
+    except (OSError, IOError):
+        font = ImageFont.load_default()
+
+    # 为每个类别分配颜色
+    class_colors: dict = {}
+
+    for det in detections:
+        bbox = det.get("bbox", {})
+        x1, y1, x2, y2 = bbox.get("x1", 0), bbox.get("y1", 0), bbox.get("x2", 0), bbox.get("y2", 0)
+        cls_name = det.get("class_name", "?")
+        conf = det.get("confidence", 0.0)
+
+        # 每类固定颜色
+        if cls_name not in class_colors:
+            import hashlib
+            h = int(hashlib.md5(cls_name.encode()).hexdigest()[:8], 16)
+            class_colors[cls_name] = (
+                (h >> 16) & 0xFF,
+                (h >> 8) & 0xFF,
+                h & 0xFF,
+            )
+        color = class_colors[cls_name]
+
+        # 画矩形
+        draw.rectangle([x1, y1, x2, y2], outline=color, width=2)
+
+        # 画标签
+        label = f"{cls_name} {conf:.2f}"
+        bbox = draw.textbbox((x1, y1 - 18), label, font=font)
+        draw.rectangle(bbox, fill=color)
+        # 计算文字亮度来确定文字颜色
+        brightness = (color[0] * 299 + color[1] * 587 + color[2] * 114) / 1000
+        text_color = (255, 255, 255) if brightness < 128 else (0, 0, 0)
+        draw.text((x1, y1 - 18), label, fill=text_color, font=font)
+
+    buf = io.BytesIO()
+    image.save(buf, format="PNG")
+    buf.seek(0)
+    return buf.getvalue()
 
 
 @router.post("/predict", response_model=TestResult)
@@ -29,30 +99,17 @@ async def predict_single(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """单图推理预测。"""
-    # 验证模型存在
-    result = await db.execute(select(ModelVersion).where(ModelVersion.id == model_id))
-    model = result.scalar_one_or_none()
-    if not model:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="模型不存在")
+    """单图推理预测（仅限自己的模型）。"""
+    model = await _get_owned_model_for_test(model_id, current_user.id, db)
 
-    if not model.file_path or not os.path.isfile(model.file_path):
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="模型文件不存在")
-
-    # 读取图片
     image_bytes = await file.read()
-
-    # 执行推理
     start_time = time.time()
+
     try:
         from ultralytics import YOLO
 
         yolo_model = YOLO(model.file_path)
-        results = yolo_model.predict(
-            source=image_bytes,
-            conf=confidence,
-            verbose=False,
-        )
+        results = yolo_model.predict(source=image_bytes, conf=confidence, verbose=False)
 
         detections = []
         for r in results:
@@ -76,7 +133,6 @@ async def predict_single(
         )
 
     inference_time_ms = (time.time() - start_time) * 1000
-
     test_id = str(uuid.uuid4())
     test_result = TestResult(
         test_id=test_id,
@@ -85,17 +141,16 @@ async def predict_single(
         inference_time_ms=round(inference_time_ms, 2),
     )
 
-    # 缓存结果
     _test_results[test_id] = {
         "result": test_result,
         "image_bytes": image_bytes,
+        "detections": detections,
         "filename": file.filename,
     }
-
     return test_result
 
 
-@router.post("/batch")
+@router.post("/batch-predict")
 async def predict_batch(
     files: list[UploadFile] = File(..., description="待检测图片列表"),
     model_id: uuid.UUID = Query(..., description="使用的模型 ID"),
@@ -103,28 +158,17 @@ async def predict_batch(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """批量推理预测。"""
-    # 验证模型
-    result = await db.execute(select(ModelVersion).where(ModelVersion.id == model_id))
-    model = result.scalar_one_or_none()
-    if not model:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="模型不存在")
-
-    if not model.file_path or not os.path.isfile(model.file_path):
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="模型文件不存在")
-
-    batch_id = str(uuid.uuid4())
-    batch_results = []
+    """批量推理预测（仅限自己的模型）。"""
+    model = await _get_owned_model_for_test(model_id, current_user.id, db)
 
     try:
         from ultralytics import YOLO
-
         yolo_model = YOLO(model.file_path)
     except ImportError:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="推理引擎未安装，请安装 ultralytics",
-        )
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="推理引擎未安装")
+
+    batch_id = str(uuid.uuid4())
+    batch_results = []
 
     for upload_file in files:
         image_bytes = await upload_file.read()
@@ -147,25 +191,21 @@ async def predict_batch(
 
         inference_time_ms = (time.time() - start_time) * 1000
         test_id = str(uuid.uuid4())
-
-        test_result = TestResult(
+        tr = TestResult(
             test_id=test_id,
             model_id=str(model_id),
             detections=detections,
             inference_time_ms=round(inference_time_ms, 2),
         )
-        batch_results.append(test_result)
-
+        batch_results.append(tr)
         _test_results[test_id] = {
-            "result": test_result,
-            "image_bytes": image_bytes,
-            "filename": upload_file.filename,
+            "result": tr, "image_bytes": image_bytes, "detections": detections, "filename": upload_file.filename
         }
 
     return {"batch_id": batch_id, "total": len(batch_results), "results": batch_results}
 
 
-@router.get("/{test_id}/results", response_model=TestResult)
+@router.get("/results/{test_id}", response_model=TestResult)
 async def get_test_results(
     test_id: str,
     current_user: User = Depends(get_current_user),
@@ -182,30 +222,13 @@ async def get_result_image(
     test_id: str,
     current_user: User = Depends(get_current_user),
 ):
-    """获取带检测框的结果图片。"""
+    """获取带检测框标注的结果图片。"""
     cached = _test_results.get(test_id)
     if not cached:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="测试结果不存在")
 
     try:
-        import io
-
-        from PIL import Image
-        from ultralytics import YOLO
-
-        # 在原图上绘制检测框
-        image = Image.open(io.BytesIO(cached["image_bytes"]))
-        # TODO: 使用 cv2/PIL 绘制检测框并返回标注后的图片
-        # 目前返回原图
-        buf = io.BytesIO()
-        image.save(buf, format="PNG")
-        buf.seek(0)
-
-        from fastapi.responses import StreamingResponse
-
-        return StreamingResponse(buf, media_type="image/png")
-    except Exception:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="生成结果图片失败",
-        )
+        annotated = _draw_boxes(cached["image_bytes"], cached["detections"])
+        return StreamingResponse(io.BytesIO(annotated), media_type="image/png")
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"生成结果图片失败: {e}")

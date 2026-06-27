@@ -1,34 +1,36 @@
 <template>
-  <n-grid :cols="2" :x-gap="16">
-    <n-gi>
-      <n-card title="上传图片进行检测">
-        <n-form label-placement="left" label-width="80">
-          <n-form-item label="选择模型">
-            <n-select v-model:value="modelId" :options="modelOptions" placeholder="选择模型" />
-          </n-form-item>
-          <n-form-item label="置信度">
-            <n-slider v-model:value="conf" :min="0.1" :max="1" :step="0.05" />
-          </n-form-item>
-          <n-form-item label="上传图片">
-            <n-upload :action="'#'" :custom-request="handlePredict" :show-file-list="false" accept="image/*">
-              <n-button type="primary">选择图片</n-button>
-            </n-upload>
-          </n-form-item>
-        </n-form>
-      </n-card>
-    </n-gi>
-    <n-gi>
-      <n-card title="检测结果">
-        <div v-if="resultImage" style="text-align:center">
-          <img :src="resultImage" style="max-width:100%;border-radius:8px" />
-        </div>
-        <div v-if="detections.length" style="margin-top:16px">
-          <n-data-table :columns="detColumns" :data="detections" :bordered="false" size="small" />
-        </div>
-        <n-empty v-if="!resultImage" description="上传图片后查看检测结果" />
-      </n-card>
-    </n-gi>
-  </n-grid>
+  <div class="view-wrapper">
+    <n-grid :cols="2" :x-gap="16" :y-gap="16" responsive="screen">
+      <n-gi>
+        <n-card title="上传图片进行检测" class="section-card">
+          <n-form label-placement="left" label-width="100">
+            <n-form-item label="选择模型">
+              <n-select v-model:value="modelId" :options="modelOptions" placeholder="选择模型" />
+            </n-form-item>
+            <n-form-item label="置信度">
+              <n-slider v-model:value="conf" :min="0.1" :max="1" :step="0.05" />
+            </n-form-item>
+            <n-form-item label="上传图片">
+              <n-upload :action="'#'" :custom-request="handlePredict" :show-file-list="false" accept="image/*">
+                <n-button type="primary">选择图片</n-button>
+              </n-upload>
+            </n-form-item>
+          </n-form>
+        </n-card>
+      </n-gi>
+      <n-gi>
+        <n-card title="检测结果" class="section-card">
+          <div v-if="resultImage" style="text-align:center">
+            <img :src="resultImage" style="max-width:100%;border-radius:8px" />
+          </div>
+          <div v-if="detections.length" style="margin-top:16px">
+            <n-data-table :columns="detColumns" :data="detections" :bordered="false" size="small" />
+          </div>
+          <n-empty v-if="!resultImage" description="上传图片后查看检测结果" />
+        </n-card>
+      </n-gi>
+    </n-grid>
+  </div>
 </template>
 
 <script setup>
@@ -73,3 +75,14 @@ async function handlePredict({ file }) {
   }
 }
 </script>
+
+<style scoped>
+.view-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.view-wrapper :deep(.n-card) {
+  border-radius: 14px;
+}
+</style>

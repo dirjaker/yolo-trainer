@@ -1,5 +1,5 @@
 <template>
-  <div v-if="training">
+  <div v-if="training" class="view-wrapper">
     <n-page-header @back="$router.back()">
       <template #title>{{ training.name }}</template>
       <template #extra>
@@ -7,21 +7,37 @@
       </template>
     </n-page-header>
 
-    <n-grid :cols="4" :x-gap="16" style="margin:16px 0">
-      <n-gi><n-card><n-statistic label="Epochs" :value="`${training.current_epoch}/${training.epochs}`" /></n-card></n-gi>
-      <n-gi><n-card><n-statistic label="当前 Loss" :value="training.current_loss" :precision="4" /></n-card></n-gi>
-      <n-gi><n-card><n-statistic label="mAP" :value="training.current_map" :precision="4" /></n-card></n-gi>
-      <n-gi><n-card><n-statistic label="耗时" :value="formatDuration(training.duration)" /></n-card></n-gi>
+    <n-grid :cols="4" :x-gap="16" :y-gap="16">
+      <n-gi>
+        <n-card class="stat-card">
+          <n-statistic label="Epochs" :value="`${training.current_epoch}/${training.epochs}`" />
+        </n-card>
+      </n-gi>
+      <n-gi>
+        <n-card class="stat-card">
+          <n-statistic label="当前 Loss" :value="training.current_loss" :precision="4" />
+        </n-card>
+      </n-gi>
+      <n-gi>
+        <n-card class="stat-card">
+          <n-statistic label="mAP" :value="training.current_map" :precision="4" />
+        </n-card>
+      </n-gi>
+      <n-gi>
+        <n-card class="stat-card">
+          <n-statistic label="耗时" :value="formatDuration(training.duration)" />
+        </n-card>
+      </n-gi>
     </n-grid>
 
-    <n-grid :cols="2" :x-gap="16">
+    <n-grid :cols="2" :x-gap="16" :y-gap="16">
       <n-gi>
-        <n-card title="Loss / mAP 曲线">
+        <n-card title="Loss / mAP 曲线" class="section-card">
           <div ref="chartRef" style="height:350px"></div>
         </n-card>
       </n-gi>
       <n-gi>
-        <n-card title="训练日志">
+        <n-card title="训练日志" class="section-card">
           <n-log :log="logs" :rows="16" />
         </n-card>
       </n-gi>
@@ -76,3 +92,14 @@ onUnmounted(() => {
   chart?.dispose()
 })
 </script>
+
+<style scoped>
+.view-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.view-wrapper :deep(.n-card) {
+  border-radius: 14px;
+}
+</style>

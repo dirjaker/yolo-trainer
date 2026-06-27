@@ -1,4 +1,4 @@
-"""模型管理服务"""
+"""模型管理服务（同步版本，供 Celery 任务与 sync API 使用）。"""
 
 import os
 import shutil
@@ -7,50 +7,36 @@ from typing import List, Optional, Tuple
 
 from sqlalchemy.orm import Session
 
-from app.models.model import Model
+from app.models.model import ModelVersion
 
 
-def get_model(db: Session, model_id: str) -> Optional[Model]:
-    """获取模型详情
-
-    Args:
-        db: 数据库会话
-        model_id: 模型 ID
-
-    Returns:
-        Model or None
-    """
-    return db.query(Model).filter(Model.id == model_id).first()
+def get_model(db: Session, model_id: str) -> Optional[ModelVersion]:
+    """获取模型详情。"""
+    return db.query(ModelVersion).filter(ModelVersion.id == model_id).first()
 
 
 def list_models(
     db: Session,
+    user_id: Optional[str] = None,
     model_version: Optional[str] = None,
     tags: Optional[List[str]] = None,
     page: int = 1,
     page_size: int = 20,
-) -> Tuple[List[Model], int]:
-    """列出模型
+) -> Tuple[List[ModelVersion], int]:
+    """列出模型（可选按用户/版本/标签筛选）。"""
+    from app.models.training import Training
 
-    Args:
-        db: 数据库会话
-        model_version: 按版本筛选
-        tags: 按标签筛选
-        page: 页码
-        page_size: 每页数量
-
-    Returns:
-        (list, total): 模型列表和总数
-    """
-    query = db.query(Model)
+    query = db.query(ModelVersion).join(Training, ModelVersion.training_id == Training.id)
+    if user_id:
+        query = query.filter(Training.user_id == user_id)
     if model_version:
-        query = query.filter(Model.version == model_version)
+        query = query.filter(ModelVersion.model_version == model_version)
     if tags:
-        query = query.filter(Model.tags.contains(tags))
-
+        for tag in tags:
+            query = query.filter(ModelVersion.tags.contains([tag]))
     total = query.count()
     models = (
-        query.order_by(Model.created_at.desc())
+        query.order_by(ModelVersion.created_at.desc())
         .offset((page - 1) * page_size)
         .limit(page_size)
         .all()
@@ -59,59 +45,33 @@ def list_models(
 
 
 def export_model(db: Session, model_id: str, export_config: dict) -> str:
-    """导出模型
-
-    Args:
-        db: 数据库会话
-        model_id: 模型 ID
-        export_config: 导出配置，包含 format 等
-
-    Returns:
-        str: 导出任务 ID
-    """
+    """提交模型导出异步任务。"""
     from app.tasks.export_tasks import export_model_task
 
-    export_id = str(uuid.uuid4())
     export_format = export_config.get("format", "onnx")
-
     export_model_task.delay(model_id, export_format, export_config)
-    return export_id
+    return str(uuid.uuid4())
 
 
 def delete_model(db: Session, model_id: str) -> None:
-    """删除模型
-
-    Args:
-        db: 数据库会话
-        model_id: 模型 ID
-    """
+    """删除模型及其文件。"""
     model = get_model(db, model_id)
     if not model:
         return
-
-    # 删除模型文件
     if model.file_path and os.path.exists(model.file_path):
-        shutil.rmtree(os.path.dirname(model.file_path), ignore_errors=True)
-
+        safe_dir = os.path.dirname(os.path.realpath(model.file_path))
+        allowed = ["/data/models", "/data/uploads", "/data/training"]
+        if any(safe_dir.startswith(d) for d in allowed):
+            shutil.rmtree(safe_dir, ignore_errors=True)
     db.delete(model)
     db.commit()
 
 
-def add_tags(db: Session, model_id: str, tags: List[str]) -> Optional[Model]:
-    """为模型添加标签
-
-    Args:
-        db: 数据库会话
-        model_id: 模型 ID
-        tags: 标签列表
-
-    Returns:
-        Model or None
-    """
+def add_tags(db: Session, model_id: str, tags: List[str]) -> Optional[ModelVersion]:
+    """为模型添加标签。"""
     model = get_model(db, model_id)
     if not model:
         return None
-
     existing_tags = set(model.tags or [])
     existing_tags.update(tags)
     model.tags = list(existing_tags)
@@ -121,30 +81,21 @@ def add_tags(db: Session, model_id: str, tags: List[str]) -> Optional[Model]:
 
 
 def get_model_versions(db: Session, model_id: str) -> List[dict]:
-    """获取模型的所有版本
-
-    Args:
-        db: 数据库会话
-        model_id: 模型 ID
-
-    Returns:
-        list: 版本列表
-    """
+    """获取同名模型的所有版本历史。"""
     model = get_model(db, model_id)
     if not model:
         return []
-
-    # 获取同名模型的所有版本
     versions = (
-        db.query(Model)
-        .filter(Model.name == model.name)
-        .order_by(Model.created_at.desc())
+        db.query(ModelVersion)
+        .filter(ModelVersion.name == model.name)
+        .order_by(ModelVersion.created_at.desc())
         .all()
     )
     return [
         {
-            "id": v.id,
+            "id": str(v.id),
             "version": v.version,
+            "model_version": v.model_version,
             "created_at": v.created_at.isoformat() if v.created_at else None,
             "metrics": v.metrics,
         }

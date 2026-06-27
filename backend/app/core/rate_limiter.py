@@ -1,11 +1,11 @@
-"""基于 Redis 滑动窗口的请求频率限制器。"""
+"""基于 Redis 滑动窗口的请求频率限制器。Redis 不可用时降级放行。"""
 
 import logging
 import time
 from typing import Optional
 
 import redis.asyncio as redis
-from fastapi import Depends, HTTPException, Request, status
+from fastapi import HTTPException, Request, status
 
 from app.core.config import get_settings
 
@@ -13,23 +13,40 @@ logger = logging.getLogger(__name__)
 settings = get_settings()
 
 _pool: Optional[redis.Redis] = None
+_redis_available: bool = True  # 降级标记
 
 
-async def _get_pool() -> redis.Redis:
-    global _pool
+async def _get_pool() -> Optional[redis.Redis]:
+    global _pool, _redis_available
+    if not _redis_available:
+        return None
     if _pool is None:
-        _pool = redis.from_url(settings.REDIS_URL, encoding="utf-8", decode_responses=True)
+        try:
+            _pool = redis.from_url(
+                settings.REDIS_URL,
+                encoding="utf-8",
+                decode_responses=True,
+                socket_connect_timeout=2,
+                socket_timeout=2,
+            )
+            await _pool.ping()
+        except Exception:
+            logger.warning("Redis 不可用，限流器降级为放行模式")
+            _redis_available = False
+            _pool = None
+            return None
+    try:
+        await _pool.ping()
+    except Exception:
+        logger.warning("Redis 连接丢失，限流器降级为放行模式")
+        _redis_available = False
+        _pool = None
+        return None
     return _pool
 
 
 class RateLimiter:
-    """滑动窗口限流器。
-
-    Args:
-        max_requests: 时间窗口内允许的最大请求数
-        window_seconds: 时间窗口大小（秒）
-        key_func: 从 Request 中提取唯一标识的函数，默认使用客户端 IP
-    """
+    """滑动窗口限流器。Redis 不可用时自动降级，放行所有请求。"""
 
     def __init__(
         self,
@@ -50,32 +67,34 @@ class RateLimiter:
 
     async def __call__(self, request: Request):
         """FastAPI 依赖注入入口。"""
+        r = await _get_pool()
+        if r is None:
+            return  # Redis 不可用，降级放行
+
         client_key = self.key_func(request)
         redis_key = f"rate_limit:{client_key}"
-
-        r = await _get_pool()
         now = time.time()
         window_start = now - self.window_seconds
 
-        pipe = r.pipeline(transaction=True)
-        # 移除窗口外的记录
-        pipe.zremrangebyscore(redis_key, 0, window_start)
-        # 统计窗口内请求数
-        pipe.zcard(redis_key)
-        # 添加当前请求
-        pipe.zadd(redis_key, {str(now): now})
-        # 设置过期时间
-        pipe.expire(redis_key, self.window_seconds)
-        results = await pipe.execute()
+        try:
+            pipe = r.pipeline(transaction=True)
+            pipe.zremrangebyscore(redis_key, 0, window_start)
+            pipe.zcard(redis_key)
+            pipe.zadd(redis_key, {str(now): now})
+            pipe.expire(redis_key, self.window_seconds)
+            results = await pipe.execute()
+            request_count = results[1]
 
-        request_count = results[1]
-
-        if request_count >= self.max_requests:
-            logger.warning("Rate limit exceeded for %s", client_key)
-            raise HTTPException(
-                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-                detail="请求过于频繁，请稍后再试",
-            )
+            if request_count >= self.max_requests:
+                logger.warning("Rate limit exceeded for %s", client_key)
+                raise HTTPException(
+                    status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                    detail="请求过于频繁，请稍后再试",
+                )
+        except HTTPException:
+            raise
+        except Exception:
+            logger.warning("限流器 Redis 操作失败，降级放行", exc_info=True)
 
 
 def get_rate_limiter(max_requests: int = 60, window_seconds: int = 60):

@@ -1,35 +1,37 @@
 <template>
-  <n-card title="创建训练任务">
-    <n-form ref="formRef" :model="form" :rules="rules" label-placement="left" label-width="120">
-      <n-form-item label="任务名称" path="name">
-        <n-input v-model:value="form.name" placeholder="输入任务名称" />
-      </n-form-item>
-      <n-form-item label="模型版本" path="model_version">
-        <n-select v-model:value="form.model_version" :options="modelVersions" placeholder="选择模型版本" />
-      </n-form-item>
-      <n-form-item label="数据集" path="dataset_id">
-        <n-select v-model:value="form.dataset_id" :options="datasets" placeholder="选择数据集" />
-      </n-form-item>
-      <n-form-item label="Epochs" path="epochs">
-        <n-input-number v-model:value="form.epochs" :min="1" :max="1000" />
-      </n-form-item>
-      <n-form-item label="Batch Size" path="batch_size">
-        <n-input-number v-model:value="form.batch_size" :min="1" :max="256" />
-      </n-form-item>
-      <n-form-item label="学习率" path="learning_rate">
-        <n-input-number v-model:value="form.learning_rate" :min="0.00001" :max="1" :step="0.0001" />
-      </n-form-item>
-      <n-form-item label="图像尺寸" path="img_size">
-        <n-select v-model:value="form.img_size" :options="[{label:'640',value:640},{label:'1280',value:1280},{label:'416',value:416}]" />
-      </n-form-item>
-      <n-form-item>
-        <n-space>
-          <n-button type="primary" :loading="loading" @click="handleSubmit">开始训练</n-button>
-          <n-button @click="$router.back()">取消</n-button>
-        </n-space>
-      </n-form-item>
-    </n-form>
-  </n-card>
+  <div class="view-wrapper">
+    <n-card title="创建训练任务" class="section-card">
+      <n-form ref="formRef" :model="form" :rules="rules" label-placement="left" label-width="120">
+        <n-form-item label="任务名称" path="name">
+          <n-input v-model:value="form.name" placeholder="输入任务名称" />
+        </n-form-item>
+        <n-form-item label="模型版本" path="model_version">
+          <n-select v-model:value="form.model_version" :options="modelVersions" placeholder="选择模型版本" />
+        </n-form-item>
+        <n-form-item label="数据集" path="dataset_id">
+          <n-select v-model:value="form.dataset_id" :options="datasets" placeholder="选择数据集" />
+        </n-form-item>
+        <n-form-item label="Epochs" path="epochs">
+          <n-input-number v-model:value="form.epochs" :min="1" :max="1000" />
+        </n-form-item>
+        <n-form-item label="Batch Size" path="batch_size">
+          <n-input-number v-model:value="form.batch_size" :min="1" :max="256" />
+        </n-form-item>
+        <n-form-item label="学习率" path="learning_rate">
+          <n-input-number v-model:value="form.learning_rate" :min="0.00001" :max="1" :step="0.0001" />
+        </n-form-item>
+        <n-form-item label="图像尺寸" path="img_size">
+          <n-select v-model:value="form.img_size" :options="[{label:'640',value:640},{label:'1280',value:1280},{label:'416',value:416}]" />
+        </n-form-item>
+        <n-form-item>
+          <n-space>
+            <n-button type="primary" :loading="loading" @click="handleSubmit">开始训练</n-button>
+            <n-button @click="$router.back()">取消</n-button>
+          </n-space>
+        </n-form-item>
+      </n-form>
+    </n-card>
+  </div>
 </template>
 
 <script setup>
@@ -83,3 +85,14 @@ async function handleSubmit() {
   }
 }
 </script>
+
+<style scoped>
+.view-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.view-wrapper :deep(.n-card) {
+  border-radius: 14px;
+}
+</style>

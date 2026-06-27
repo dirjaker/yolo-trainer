@@ -1,5 +1,6 @@
 """Dataset schemas."""
 
+import uuid
 from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, List, Optional
@@ -31,7 +32,7 @@ class DatasetCreate(BaseModel):
 
 class DatasetResponse(BaseModel):
     """Schema for dataset response."""
-    id: int
+    id: uuid.UUID
     name: str
     description: Optional[str] = None
     format: DatasetFormat

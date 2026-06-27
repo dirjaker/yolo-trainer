@@ -1,6 +1,6 @@
 <template>
-  <div>
-    <n-card title="模型对比">
+  <div class="view-wrapper">
+    <n-card title="模型对比" class="section-card">
       <n-space vertical :size="16">
         <n-space align="center">
           <n-select
@@ -24,25 +24,25 @@
 
         <n-spin :show="loading">
           <template v-if="compareResult">
-            <n-grid :cols="3" :x-gap="16" style="margin-bottom: 16px">
+            <n-grid :cols="3" :x-gap="16" :y-gap="16">
               <n-gi>
-                <n-card size="small" title="mAP@0.5">
+                <n-card size="small" title="mAP@0.5" class="chart-card">
                   <div ref="mapChartRef" style="height: 300px"></div>
                 </n-card>
               </n-gi>
               <n-gi>
-                <n-card size="small" title="推理速度 (ms)">
+                <n-card size="small" title="推理速度 (ms)" class="chart-card">
                   <div ref="speedChartRef" style="height: 300px"></div>
                 </n-card>
               </n-gi>
               <n-gi>
-                <n-card size="small" title="模型大小 (MB)">
+                <n-card size="small" title="模型大小 (MB)" class="chart-card">
                   <div ref="sizeChartRef" style="height: 300px"></div>
                 </n-card>
               </n-gi>
             </n-grid>
 
-            <n-card title="详细对比数据" size="small">
+            <n-card title="详细对比数据" size="small" class="section-card">
               <n-data-table :columns="detailColumns" :data="compareResult.details" :bordered="false" />
             </n-card>
           </template>
@@ -51,7 +51,7 @@
       </n-space>
     </n-card>
 
-    <n-card title="历史对比记录" style="margin-top: 16px">
+    <n-card title="历史对比记录" class="section-card">
       <n-data-table :columns="historyColumns" :data="historyList" :bordered="false" :loading="historyLoading" />
     </n-card>
   </div>
@@ -166,3 +166,14 @@ function renderCharts(data) {
   makeBar(sizeChartRef, data.details.map((d) => d.model_size), 'MB')
 }
 </script>
+
+<style scoped>
+.view-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.view-wrapper :deep(.n-card) {
+  border-radius: 14px;
+}
+</style>

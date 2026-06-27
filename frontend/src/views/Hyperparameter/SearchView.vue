@@ -1,8 +1,8 @@
 <template>
-  <div>
-    <n-grid :cols="2" :x-gap="16">
+  <div class="view-wrapper">
+    <n-grid :cols="2" :x-gap="16" :y-gap="16">
       <n-gi>
-        <n-card title="配置搜索空间">
+        <n-card title="配置搜索空间" class="section-card">
           <n-form label-placement="left" label-width="120" :model="form">
             <n-form-item label="选择训练任务">
               <n-select v-model:value="form.trainingId" :options="trainingOptions" placeholder="选择基础训练任务" />
@@ -35,7 +35,7 @@
         </n-card>
       </n-gi>
       <n-gi>
-        <n-card title="最优参数结果">
+        <n-card title="最优参数结果" class="section-card">
           <template v-if="bestTrial">
             <n-descriptions label-placement="left" :column="1" bordered size="small">
               <n-descriptions-item label="最优 mAP">{{ bestTrial.map50?.toFixed(4) }}</n-descriptions-item>
@@ -47,7 +47,7 @@
           <n-empty v-else description="运行搜索后查看最优参数" />
         </n-card>
 
-        <n-card title="搜索进度" style="margin-top: 16px">
+        <n-card title="搜索进度" class="section-card" style="margin-top: 16px">
           <template v-if="currentSearch">
             <n-progress
               type="line"
@@ -70,11 +70,11 @@
       </n-gi>
     </n-grid>
 
-    <n-card title="试验列表" style="margin-top: 16px">
+    <n-card title="试验列表" class="section-card">
       <n-data-table :columns="trialColumns" :data="trials" :bordered="false" :loading="trialsLoading" />
     </n-card>
 
-    <n-card title="搜索历史" style="margin-top: 16px">
+    <n-card title="搜索历史" class="section-card">
       <n-data-table :columns="historyColumns" :data="searchHistory" :bordered="false" :loading="historyLoading" />
     </n-card>
   </div>
@@ -218,3 +218,14 @@ function startPolling(id) {
   }, 5000)
 }
 </script>
+
+<style scoped>
+.view-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.view-wrapper :deep(.n-card) {
+  border-radius: 14px;
+}
+</style>

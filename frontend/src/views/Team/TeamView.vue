@@ -1,8 +1,8 @@
 <template>
-  <div>
-    <n-grid :cols="2" :x-gap="16">
+  <div class="view-wrapper">
+    <n-grid :cols="2" :x-gap="16" :y-gap="16">
       <n-gi>
-        <n-card title="团队列表">
+        <n-card title="团队列表" class="section-card">
           <template #header-extra>
             <n-button type="primary" size="small" @click="showCreateModal = true">创建团队</n-button>
           </template>
@@ -22,7 +22,7 @@
         </n-card>
       </n-gi>
       <n-gi>
-        <n-card :title="selectedTeam ? `${selectedTeam.name} - 成员管理` : '成员管理'">
+        <n-card :title="selectedTeam ? `${selectedTeam.name} - 成员管理` : '成员管理'" class="section-card">
           <template v-if="selectedTeam" #header-extra>
             <n-button type="primary" size="small" @click="showAddMemberModal = true">添加成员</n-button>
           </template>
@@ -34,8 +34,8 @@
       </n-gi>
     </n-grid>
 
-    <n-modal v-model:show="showCreateModal" preset="dialog" title="创建团队">
-      <n-form label-placement="left" label-width="80">
+    <n-modal v-model:show="showCreateModal" preset="card" title="创建团队" class="form-modal">
+      <n-form label-placement="left" label-width="100">
         <n-form-item label="团队名称">
           <n-input v-model:value="newTeam.name" placeholder="输入团队名称" />
         </n-form-item>
@@ -43,13 +43,16 @@
           <n-input v-model:value="newTeam.description" type="textarea" placeholder="团队描述（可选）" />
         </n-form-item>
       </n-form>
-      <template #action>
-        <n-button type="primary" :loading="creating" @click="handleCreateTeam">创建</n-button>
+      <template #footer>
+        <n-space justify="end">
+          <n-button @click="showCreateModal = false">取消</n-button>
+          <n-button type="primary" :loading="creating" @click="handleCreateTeam">创建</n-button>
+        </n-space>
       </template>
     </n-modal>
 
-    <n-modal v-model:show="showAddMemberModal" preset="dialog" title="添加成员">
-      <n-form label-placement="left" label-width="80">
+    <n-modal v-model:show="showAddMemberModal" preset="card" title="添加成员" class="form-modal">
+      <n-form label-placement="left" label-width="100">
         <n-form-item label="用户ID">
           <n-input v-model:value="newMember.userId" placeholder="输入用户ID" />
         </n-form-item>
@@ -57,8 +60,11 @@
           <n-select v-model:value="newMember.role" :options="roleOptions" />
         </n-form-item>
       </n-form>
-      <template #action>
-        <n-button type="primary" :loading="addingMember" @click="handleAddMember">添加</n-button>
+      <template #footer>
+        <n-space justify="end">
+          <n-button @click="showAddMemberModal = false">取消</n-button>
+          <n-button type="primary" :loading="addingMember" @click="handleAddMember">添加</n-button>
+        </n-space>
       </template>
     </n-modal>
   </div>
@@ -170,3 +176,17 @@ async function handleRemoveMember(userId) {
   }
 }
 </script>
+
+<style scoped>
+.view-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.view-wrapper :deep(.n-card) {
+  border-radius: 14px;
+}
+.form-modal {
+  width: 480px;
+}
+</style>

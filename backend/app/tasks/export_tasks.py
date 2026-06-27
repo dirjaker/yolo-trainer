@@ -8,7 +8,6 @@ from celery import shared_task
 
 logger = logging.getLogger(__name__)
 
-
 EXPORT_FORMATS = {
     "onnx": {"ext": ".onnx", "dynamic": True},
     "torchscript": {"ext": ".torchscript", "dynamic": False},
@@ -21,84 +20,77 @@ EXPORT_FORMATS = {
 
 @shared_task(bind=True, name="tasks.export_model", max_retries=2)
 def export_model_task(
-    self, model_id: str, format: str, config: Optional[dict] = None
+    self, model_id: str, fmt: str, config: Optional[dict] = None
 ) -> dict:
-    """导出模型到指定格式
+    """导出模型到指定格式。
 
     Args:
         model_id: 模型 ID
-        format: 导出格式 (onnx, torchscript, tflite, coreml, tensorrt, openvino)
-        config: 导出配置选项
-
-    Returns:
-        dict: 导出结果，包含导出文件路径
+        fmt: 导出格式 (onnx, torchscript, tflite, coreml, tensorrt, openvino)
+        config: 导出配置选项 (img_size, half, dynamic, simplify 等)
     """
     from app.core.database import SessionLocal
-    from app.models.model import Model
-    from app.services.model_service import get_model
+    from app.models.model import ModelVersion
 
-    if format not in EXPORT_FORMATS:
+    if fmt not in EXPORT_FORMATS:
         raise ValueError(
-            f"Unsupported export format: {format}. "
-            f"Supported: {list(EXPORT_FORMATS.keys())}"
+            f"不支持的导出格式: {fmt}。支持: {list(EXPORT_FORMATS.keys())}"
         )
 
     config = config or {}
     db = SessionLocal()
-
     try:
-        model = get_model(db, model_id)
+        model = db.query(ModelVersion).filter(ModelVersion.id == model_id).first()
         if not model:
-            raise ValueError(f"Model {model_id} not found")
+            raise ValueError(f"模型 {model_id} 不存在")
 
-        if not model.file_path or not os.path.exists(model.file_path):
-            raise FileNotFoundError(f"Model weights not found at {model.file_path}")
+        if not model.file_path or not os.path.isfile(model.file_path):
+            raise FileNotFoundError(f"模型文件不存在: {model.file_path}")
 
-        logger.info(f"Exporting model {model_id} to {format}")
+        logger.info("导出模型 %s → %s", model_id, fmt)
 
         export_dir = os.path.join(os.path.dirname(model.file_path), "exports")
         os.makedirs(export_dir, exist_ok=True)
 
-        format_config = EXPORT_FORMATS[format]
+        fmt_config = EXPORT_FORMATS[fmt]
 
-        # TODO: 集成实际的模型导出逻辑
-        # from ultralytics import YOLO
-        # yolo_model = YOLO(model.file_path)
-        # exported_path = yolo_model.export(
-        #     format=format,
-        #     dynamic=config.get("dynamic", format_config["dynamic"]),
-        #     imgsz=config.get("img_size", 640),
-        #     half=config.get("half", False),
-        #     simplify=True if format == "onnx" else False,
-        # )
+        # 真实导出
+        try:
+            from ultralytics import YOLO
 
-        # 模拟导出路径
-        export_path = os.path.join(
-            export_dir, f"{model_id}{format_config['ext']}"
-        )
+            yolo_model = YOLO(model.file_path)
+            exported_path = yolo_model.export(
+                format=fmt,
+                dynamic=config.get("dynamic", fmt_config["dynamic"]),
+                imgsz=config.get("img_size", 640),
+                half=config.get("half", False),
+                simplify=config.get("simplify", fmt == "onnx"),
+            )
+            export_path = str(exported_path)
+        except ImportError:
+            raise RuntimeError("ultralytics 未安装，无法导出模型")
+        except Exception as e:
+            raise RuntimeError(f"导出失败: {e}")
 
         # 更新模型记录
-        exports = model.metrics.get("exports", {}) if model.metrics else {}
-        exports[format] = {
-            "path": export_path,
-            "config": config,
-        }
+        exports = (model.metrics or {}).get("exports", {})
+        exports[fmt] = {"path": export_path, "config": config}
         if model.metrics:
             model.metrics["exports"] = exports
         else:
             model.metrics = {"exports": exports}
         db.commit()
 
-        logger.info(f"Model {model_id} exported to {format}: {export_path}")
+        logger.info("模型 %s 导出 %s 完成 → %s", model_id, fmt, export_path)
         return {
             "status": "success",
             "model_id": model_id,
-            "format": format,
+            "format": fmt,
             "export_path": export_path,
         }
 
     except Exception as exc:
-        logger.error(f"Model {model_id} export to {format} failed: {exc}")
+        logger.error("模型 %s 导出 %s 失败: %s", model_id, fmt, exc)
         raise self.retry(exc=exc, countdown=30)
     finally:
         db.close()

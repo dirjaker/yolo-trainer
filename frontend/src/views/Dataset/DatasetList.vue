@@ -1,15 +1,21 @@
 <template>
-  <div>
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
-      <span />
+  <div class="page-content">
+    <div class="page-header">
+      <h2 class="page-title">数据集管理</h2>
       <n-upload :action="'#'" :custom-request="handleUpload" :show-file-list="false">
         <n-button type="primary">上传数据集</n-button>
       </n-upload>
     </div>
-    <n-data-table :columns="columns" :data="store.datasets" :loading="loading" :bordered="false" />
-    <div style="margin-top:16px;display:flex;justify-content:flex-end">
-      <n-pagination v-model:page="page" :page-size="pageSize" :item-count="store.total" @update:page="fetchData" />
-    </div>
+    <n-card class="content-card" :bordered="true">
+      <n-data-table :columns="columns" :data="store.datasets" :loading="loading" :bordered="false">
+        <template #empty>
+          <n-empty description="暂无数据集" />
+        </template>
+      </n-data-table>
+      <div class="pagination-row">
+        <n-pagination v-model:page="page" :page-size="pageSize" :item-count="store.total" @update:page="fetchData" />
+      </div>
+    </n-card>
   </div>
 </template>
 
@@ -66,3 +72,35 @@ async function handleDelete(id) {
 
 onMounted(fetchData)
 </script>
+
+<style scoped>
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.page-title {
+  font-size: 22px;
+  font-weight: 600;
+  color: #1F2937;
+  margin: 0;
+}
+
+.content-card {
+  border-radius: 14px;
+  background: #FFFFFF;
+}
+
+.content-card :deep(.n-card) {
+  border-radius: 14px;
+  border-color: #F0EFEC;
+}
+
+.pagination-row {
+  margin-top: 16px;
+  display: flex;
+  justify-content: flex-end;
+}
+</style>
