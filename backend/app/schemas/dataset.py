@@ -5,7 +5,7 @@ from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, computed_field
 
 
 class DatasetFormat(str, Enum):
@@ -41,6 +41,20 @@ class DatasetResponse(BaseModel):
     file_path: Optional[str] = None
     status: DatasetStatus = DatasetStatus.UPLOADING
     created_at: datetime
+
+    @computed_field
+    @property
+    def image_count(self) -> int:
+        """Computed total image count from stats."""
+        if not self.stats:
+            return 0
+        return sum(int(self.stats.get(k, 0)) for k in ("train", "val", "test"))
+
+    @computed_field
+    @property
+    def size(self) -> str:
+        """Computed image size display."""
+        return (self.stats or {}).get("img_size", "")
 
     class Config:
         from_attributes = True

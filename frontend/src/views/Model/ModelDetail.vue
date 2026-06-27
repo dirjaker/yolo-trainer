@@ -30,9 +30,16 @@
     <n-grid :cols="2" :x-gap="16" :y-gap="16">
       <n-gi>
         <n-card title="版本历史" class="section-card">
-          <n-timeline>
-            <n-timeline-item v-for="v in model.history" :key="v.version" :title="v.version" :content="v.description" :time="formatDate(v.created_at)" />
+          <n-timeline v-if="versions.length">
+            <n-timeline-item
+              v-for="v in versions"
+              :key="v.version"
+              :title="`v${v.version} (${v.model_version})`"
+              :content="v.metrics?.note || v.metrics?.mAP50 ? `mAP50: ${v.metrics.mAP50}` : ''"
+              :time="formatDate(v.created_at)"
+            />
           </n-timeline>
+          <n-empty v-else description="暂无版本历史" />
         </n-card>
       </n-gi>
       <n-gi>
@@ -47,16 +54,23 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
-import { getModel, addTags } from '../../api/model'
+import { getModel, addTags, getModelVersions } from '../../api/model'
 import { formatDate, formatFileSize } from '../../utils/format'
 
 const route = useRoute()
 const model = ref(null)
+const versions = ref([])
 const tags = ref([])
 
 onMounted(async () => {
-  model.value = await getModel(route.params.id)
-  tags.value = model.value.tags || []
+  const id = route.params.id
+  const [m, v] = await Promise.all([
+    getModel(id),
+    getModelVersions(id).catch(() => []),
+  ])
+  model.value = m
+  versions.value = v || []
+  tags.value = m.tags || []
 })
 
 async function handleTags(newTags) {

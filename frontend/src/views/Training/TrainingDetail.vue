@@ -38,7 +38,8 @@
       </n-gi>
       <n-gi>
         <n-card title="训练日志" class="section-card">
-          <n-log :log="logs" :rows="16" />
+          <n-log v-if="logs" :log="logs" :rows="16" />
+          <n-empty v-else description="暂无日志" />
         </n-card>
       </n-gi>
     </n-grid>
@@ -64,16 +65,16 @@ async function load() {
   training.value = await getTraining(route.params.id)
   try {
     const m = await getTrainingMetrics(route.params.id)
-    if (m && chartRef.value) {
+    if (m && chartRef.value && m.epochs?.length) {
       if (!chart) chart = echarts.init(chartRef.value)
       chart.setOption({
         tooltip: { trigger: 'axis' },
-        legend: { data: ['Loss', 'mAP'] },
-        xAxis: { type: 'category', data: (m.epochs || []).map((e) => `E${e}`) },
-        yAxis: [{ type: 'value', name: 'Loss' }, { type: 'value', name: 'mAP', position: 'right' }],
+        legend: { data: ['Loss', 'mAP50'] },
+        xAxis: { type: 'category', data: m.epochs.map((e) => `E${e}`) },
+        yAxis: [{ type: 'value', name: 'Loss' }, { type: 'value', name: 'mAP50', position: 'right', min: 0, max: 1 }],
         series: [
-          { name: 'Loss', type: 'line', data: m.loss || [], smooth: true },
-          { name: 'mAP', type: 'line', yAxisIndex: 1, data: m.map || [], smooth: true },
+          { name: 'Loss', type: 'line', data: m.loss || [], smooth: true, symbol: 'none' },
+          { name: 'mAP50', type: 'line', yAxisIndex: 1, data: m.map || [], smooth: true, symbol: 'none' },
         ],
       })
     }

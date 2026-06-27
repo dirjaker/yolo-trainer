@@ -2,7 +2,7 @@
 YOLO Trainer — 案例种子数据
 
 运行方式:
-    cd /home/dirjaker/myprojects/yolo-trainer/backend
+    cd backend
     python seed_examples.py
 
 将创建 4 个数据集、4 个训练任务、2 个模型版本、1 次超参搜索及其 trial、
@@ -16,11 +16,12 @@ import os
 from datetime import datetime, timedelta, timezone
 
 # 确保项目在 sys.path 中
-sys.path.insert(0, "/home/dirjaker/myprojects/yolo-trainer/backend")
+_BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, _BACKEND_DIR)
 
 # 强制使用绝对路径的数据库
 os.environ["DEBUG"] = "true"
-os.environ["DATABASE_URL"] = "sqlite+aiosqlite:////home/dirjaker/myprojects/yolo-trainer/backend/yolo_trainer.db"
+os.environ["DATABASE_URL"] = f"sqlite+aiosqlite:///{_BACKEND_DIR}/yolo_trainer.db"
 
 from app.core.database import async_session
 from app.models.user import User

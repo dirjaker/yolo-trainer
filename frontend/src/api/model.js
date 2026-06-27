@@ -9,3 +9,5 @@ export const exportModel = (id, config) => request.post(`/models/${id}/export`, 
 export const deleteModel = (id) => request.delete(`/models/${id}`)
 
 export const addTags = (id, tags) => request.post(`/models/${id}/tags`, { tags })
+
+export const getModelVersions = (id) => request.get(`/models/${id}/versions`)
