@@ -2,8 +2,9 @@
 
 from datetime import datetime
 from typing import Any, Dict, List, Optional
+from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class ModelMetrics(BaseModel):
@@ -46,6 +47,13 @@ class CompareResponse(BaseModel):
     error_message: Optional[str] = None
     created_at: datetime
     completed_at: Optional[datetime] = None
+
+    @field_validator("id", "test_dataset_id", mode="before")
+    @classmethod
+    def coerce_uuid(cls, v: Any) -> str:
+        if isinstance(v, UUID):
+            return str(v)
+        return v
 
     class Config:
         from_attributes = True

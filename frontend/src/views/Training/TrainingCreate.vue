@@ -68,14 +68,25 @@ const rules = {
 
 onMounted(async () => {
   const [mRes, dRes] = await Promise.all([getModels({ page: 1, page_size: 100 }), getDatasets({ page: 1, page_size: 100 })])
-  modelVersions.value = (mRes.items || []).map((m) => ({ label: m.name, value: m.version }))
+  modelVersions.value = (mRes.items || []).map((m) => ({ label: m.name, value: m.model_version }))
   datasets.value = (dRes.items || []).map((d) => ({ label: d.name, value: d.id }))
 })
 
 async function handleSubmit() {
   try {
     loading.value = true
-    await store.createTraining(form.value)
+    const payload = {
+      name: form.value.name,
+      model_version: form.value.model_version,
+      dataset_id: form.value.dataset_id,
+      config: {
+        epochs: form.value.epochs,
+        batch: form.value.batch_size,
+        lr0: form.value.learning_rate,
+        imgsz: form.value.img_size,
+      },
+    }
+    await store.createTraining(payload)
     message.success('训练任务已创建')
     router.push('/training')
   } catch (e) {

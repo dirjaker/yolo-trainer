@@ -10,22 +10,22 @@
     <n-grid :cols="4" :x-gap="16" :y-gap="16">
       <n-gi>
         <n-card class="stat-card">
-          <n-statistic label="Epochs" :value="`${training.current_epoch}/${training.epochs}`" />
+          <n-statistic label="进度" :value="`${Math.round(training.progress || 0)}%`" />
         </n-card>
       </n-gi>
       <n-gi>
         <n-card class="stat-card">
-          <n-statistic label="当前 Loss" :value="training.current_loss" :precision="4" />
+          <n-statistic label="Epochs" :value="`${training.config?.epochs || '-'}`" />
         </n-card>
       </n-gi>
       <n-gi>
         <n-card class="stat-card">
-          <n-statistic label="mAP" :value="training.current_map" :precision="4" />
+          <n-statistic label="mAP50" :value="training.metrics?.mAP50 || '-'" :precision="4" />
         </n-card>
       </n-gi>
       <n-gi>
         <n-card class="stat-card">
-          <n-statistic label="耗时" :value="formatDuration(training.duration)" />
+          <n-statistic label="F1" :value="training.metrics?.F1 || '-'" :precision="4" />
         </n-card>
       </n-gi>
     </n-grid>
@@ -50,7 +50,6 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 import * as echarts from 'echarts'
 import { getTraining, getTrainingMetrics } from '../../api/training'
-import { formatDuration } from '../../utils/format'
 
 const route = useRoute()
 const training = ref(null)

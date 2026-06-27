@@ -34,7 +34,7 @@ const pageSize = 20
 const columns = [
   { title: '数据集名称', key: 'name' },
   { title: '图片数量', key: 'image_count' },
-  { title: '大小', key: 'size', render: (row) => formatFileSize(row.size) },
+  { title: '大小', key: 'size', render: (row) => row.stats?.img_size || '-' },
   { title: '创建时间', key: 'created_at', render: (row) => formatDate(row.created_at) },
   {
     title: '操作',

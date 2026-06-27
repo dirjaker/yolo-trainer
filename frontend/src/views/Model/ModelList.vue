@@ -43,7 +43,7 @@ const versionOptions = [
 const columns = [
   { title: '模型名称', key: 'name' },
   { title: '版本', key: 'version' },
-  { title: '大小', key: 'size', render: (row) => formatFileSize(row.size) },
+  { title: '大小', key: 'size', render: (row) => formatFileSize(row.file_size) },
   { title: '标签', key: 'tags', render: (row) => (row.tags || []).map((t) => h(NTag, { size: 'small', style: 'margin-right:4px' }, { default: () => t })) },
   { title: '创建时间', key: 'created_at', render: (row) => formatDate(row.created_at) },
   {

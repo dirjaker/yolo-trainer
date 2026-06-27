@@ -4,8 +4,9 @@ import uuid
 from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, List, Optional
+from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class DeployPlatform(str, Enum):
@@ -53,6 +54,13 @@ class DeploymentResponse(BaseModel):
     updated_at: datetime
     stopped_at: Optional[datetime] = None
 
+    @field_validator("id", "model_id", mode="before")
+    @classmethod
+    def coerce_uuid(cls, v: Any) -> str:
+        if isinstance(v, UUID):
+            return str(v)
+        return v
+
     class Config:
         from_attributes = True
 
@@ -74,3 +82,10 @@ class DeploymentStatusResponse(BaseModel):
     uptime_seconds: Optional[float] = None
     request_count: Optional[int] = None
     avg_latency_ms: Optional[float] = None
+
+    @field_validator("id", mode="before")
+    @classmethod
+    def coerce_uuid(cls, v: Any) -> str:
+        if isinstance(v, UUID):
+            return str(v)
+        return v

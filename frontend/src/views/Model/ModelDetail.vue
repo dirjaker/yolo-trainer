@@ -17,7 +17,7 @@
       </n-gi>
       <n-gi>
         <n-card class="stat-card">
-          <n-statistic label="大小" :value="formatFileSize(model.size)" />
+          <n-statistic label="大小" :value="formatFileSize(model.file_size)" />
         </n-card>
       </n-gi>
       <n-gi>

@@ -3,8 +3,9 @@
 from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, List, Optional, Union
+from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class SearchMethod(str, Enum):
@@ -98,6 +99,13 @@ class TrialResponse(BaseModel):
     duration: Optional[float] = None  # seconds
     error: Optional[str] = None
 
+    @field_validator("id", "search_id", mode="before")
+    @classmethod
+    def coerce_uuid(cls, v: Any) -> str:
+        if isinstance(v, UUID):
+            return str(v)
+        return v
+
     class Config:
         from_attributes = True
 
@@ -117,6 +125,13 @@ class HyperparameterSearchResponse(BaseModel):
     best_metric: Optional[float] = None
     best_params: Optional[Dict[str, Any]] = None
     created_at: datetime
+
+    @field_validator("id", "dataset_id", mode="before")
+    @classmethod
+    def coerce_uuid(cls, v: Any) -> str:
+        if isinstance(v, UUID):
+            return str(v)
+        return v
 
     class Config:
         from_attributes = True
