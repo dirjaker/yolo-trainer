@@ -113,3 +113,52 @@ SwaggerUIBundle({{
 </script>
 </body>
 </html>""")
+
+# ── 前端静态文件（SPA 模式，与 API 共用端口） ─────────────────────────────
+import os as _os  # noqa: E402
+from pathlib import Path as _Path  # noqa: E402
+
+FRONTEND_DIST = _Path(__file__).resolve().parent.parent / "frontend" / "dist"
+
+if FRONTEND_DIST.exists():
+    from fastapi.responses import FileResponse  # noqa: F811
+
+    class _SPAMiddleware:
+        """将非 API/非静态请求回退到 index.html（Vue Router history 模式）。"""
+
+        def __init__(self, app, dist_dir):
+            self.app = app
+            self.dist_dir = dist_dir
+
+        async def __call__(self, scope, receive, send):
+            if scope["type"] == "http":
+                path = scope["path"]
+                # API 和静态资源请求直接放行
+                if path.startswith(("/api/", "/static/", "/docs", "/openapi.json", "/health", "/metrics")):
+                    await self.app(scope, receive, send)
+                    return
+                # 尝试返回静态文件
+                file_path = self.dist_dir / path.lstrip("/")
+                if file_path.is_file():
+                    from starlette.responses import FileResponse
+                    from starlette.staticfiles import StaticFiles
+                    await StaticFiles(directory=str(self.dist_dir))(scope, receive, send)
+                    return
+                # SPA fallback: 返回 index.html
+                index_path = self.dist_dir / "index.html"
+                if index_path.exists():
+                    from starlette.responses import FileResponse
+                    response = FileResponse(str(index_path))
+                    await response(scope, receive, send)
+                    return
+            await self.app(scope, receive, send)
+
+    app.add_middleware(_SPAMiddleware, dist_dir=FRONTEND_DIST)
+    logger.info(f"Frontend SPA serving from: {FRONTEND_DIST}")
+
+
+if __name__ == "__main__":
+    import uvicorn
+
+    port = int(os.getenv("PORT", "10003"))
+    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=False)
